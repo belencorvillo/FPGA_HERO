@@ -84,3 +84,12 @@
 !*.elf
 !*.bmm
 !*.xmp
+
+###########################################################################
+# Directorios basura de Vivado (Añadido extra)
+###########################################################################
+# Bloquear explícitamente estas carpetas para que git no mire dentro
+*FPGA_HERO.runs
+*FPGA_HERO.cache/wt 
+*FPGA_HERO.hw/hw_1
+*FPGA_HERO.srcs/utils_1/imports/synth_1
