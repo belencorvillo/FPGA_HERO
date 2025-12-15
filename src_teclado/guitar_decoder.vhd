@@ -22,8 +22,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
 entity guitar_decoder is
-    Port ( 
-        clk            : in  STD_LOGIC;
+    Port (        clk            : in  STD_LOGIC;
         reset          : in  STD_LOGIC;
         ps2_code_new   : in  STD_LOGIC;                    
         ps2_code       : in  STD_LOGIC_VECTOR(7 downto 0); 

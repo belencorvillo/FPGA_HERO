@@ -81,7 +81,7 @@ BEGIN
 --                ps2_code_new <= '0';
 --            end if;
             --SALIDA RESULTADOS PRUEBA
-            if (count_idle = clk_freq/18_000) and (error = '0') then
+            if (count_idle = (clk_freq/18_000)-1) and (error = '0') then
                 ps2_code_new <= '1';
                 ps2_code     <= ps2_word(8 downto 1);
                 
