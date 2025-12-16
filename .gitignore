@@ -84,3 +84,15 @@
 !*.elf
 !*.bmm
 !*.xmp
+
+# Vivado ignores
+*.jou
+*.log
+*.pb
+*.dcp
+*.runs/
+*.cache/
+*.hw/
+*.ip_user_files/
+.Xil/
+*_COPIA*

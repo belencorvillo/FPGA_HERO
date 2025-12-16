@@ -11,7 +11,9 @@ entity controladora_audio is
         user_hit   : in STD_LOGIC; -- '1' si el usuario está acertando (suena), '0' silencio
         pwm_audio  : out STD_LOGIC;
         pwm_sd     : out STD_LOGIC; -- apagamos sonido (shutdown)
-        current_note_index : out integer range 0 to 499
+        current_note_index : out integer range 0 to 499;
+        play_enable : in STD_LOGIC;  -- '1' = Reproducir, '0' = Reset/Parar
+        song_finished : out STD_LOGIC -- '1' = Canción terminada
         
     );
 end controladora_audio;
@@ -32,9 +34,13 @@ architecture Behavioral of controladora_audio is
     signal note_idx : integer range 0 to 499 := 0; --índice nota
     signal current_dur  : integer := 0;
     
+-- Señal interna de fin
+    signal finished_internal : std_logic := '0';
+    
 begin
     -- Ponemos esto a '1' para que el chip de audio de la Nexys se encienda
     pwm_sd <= '1'; 
+    song_finished <= finished_internal;
     
     -- Lectura de datos del paquete
     current_freq1 <= SEVEN_NATION_SONG(note_idx).freq1;
@@ -46,12 +52,20 @@ begin
         variable ticks_1 : integer; --ticks por media onda (para generar onda cuadrada)
         variable ticks_2 : integer;
     begin
-        if reset = '1' then
+        if reset = '1' or play_enable = '0' then
             note_idx <= 0;
             counter_ms <= 0;
             pwm_toggle1 <= '0';
             pwm_toggle2 <= '0';
+            counter_pwm1 <= 0;
+            counter_pwm2 <= 0;
+            finished_internal <= '0';
+            
         elsif rising_edge(clk_100MHz) then
+        
+        --Solo avanzamos si NO ha terminado la cancion
+        if finished_internal = '0' then
+        
             -- GENERADOR 1 (Melodía Principal)
             if current_freq1 > 0 then
                 -- Fórmula: (100MHz / Freq) / 2
@@ -86,16 +100,22 @@ begin
             if counter_ms >= (current_dur * 100000) then 
                 counter_ms <= 0;
                 
-                -- ESTE IF HACE QUE CUANDO ACABE VUELVA A EMPEZAR, A LO MEJOR NOS INTERESA FINALIZAR Y YA ESTÁ
-                -- YA LO HABLAREMOS :)
-                if note_idx = 400 then 
-                    note_idx <= 2; -- Bucle infinito saltando intro
-                else
-                    note_idx <= note_idx + 1;
-                end if;
+                -- LÓGICA DE FIN DE CANCIÓN
+                    if note_idx = 499 then 
+                        finished_internal <= '1'; 
+                        -- Nos quedamos aquí (idx 499) hasta que reinicien play_enable
+                    else
+                        note_idx <= note_idx + 1;
+                    end if;   
             else
                 counter_ms <= counter_ms + 1;
             end if;
+            
+            else
+            -- Si finished_internal = '1', nos aseguramos de que haya silencio
+                pwm_toggle1 <= '0';
+                pwm_toggle2 <= '0';
+             end if;
         end if;
     end process;
 

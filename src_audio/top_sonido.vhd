@@ -3,49 +3,39 @@ use IEEE.STD_LOGIC_1164.ALL;
 
 entity top_sonido is
     Port ( 
-        CLK100MHZ : in STD_LOGIC;    -- Reloj principal
-        CPU_RESETN : in STD_LOGIC;   -- Botón rojo de reset (activo bajo)
-        SW : in STD_LOGIC_VECTOR(0 downto 0); -- Interruptor 0 (Simula "Hit")
-        AUD_PWM : out STD_LOGIC;     -- Salida Audio
-        AUD_SD : out STD_LOGIC;      -- Enable Audio
-        LED : out STD_LOGIC_VECTOR(0 downto 0) -- LED 0 para ver si suena
+        CLK100MHZ : in STD_LOGIC;
+        CPU_RESETN : in STD_LOGIC;
+        SW : in STD_LOGIC_VECTOR(1 downto 0); -- Ahora usamos 2 interruptores
+        AUD_PWM : out STD_LOGIC;
+        AUD_SD : out STD_LOGIC;
+        LED : out STD_LOGIC_VECTOR(1 downto 0) -- Ahora usamos 2 LEDs
     );
 end top_sonido;
 
 architecture Behavioral of top_sonido is
     signal reset_sys : std_logic;
+    signal fin_cancion : std_logic; -- Cable para ver si ha acabado
 begin
-    -- El botón de reset de la Nexys A7 es '0' cuando se pulsa, lo invertimos a '1'
     reset_sys <= not CPU_RESETN; 
     
-    -- Visualización: Si el Switch está arriba, encendemos el LED
-    LED(0) <= SW(0);
+    -- Visualización
+    LED(0) <= SW(0); -- Muestra si estás "tocando"
+    LED(1) <= fin_cancion; -- Se enciende cuando acaba la canción
 
-    -- Instancia del Driver de Audio
+    -- Instancia
     U_AUDIO: entity work.controladora_audio
     port map (
         clk_100MHz => CLK100MHZ,
         reset      => reset_sys,
-        user_hit   => SW(0), -- ¡Truco! El Switch 0 simula que estás acertando notas
+        
+        -- NUEVAS CONEXIONES
+        play_enable => SW(1),      -- Interruptor 1 para ARRANCAR la canción
+        song_finished => fin_cancion, -- Salida al LED 1
+        
+        user_hit   => SW(0),       -- Interruptor 0 para ACERTAR notas
         pwm_audio  => AUD_PWM,
         pwm_sd     => AUD_SD,
-        current_note_index => open -- De momento no lo conectamos a nada
-        
-        --AHORA MISMO DEJAMOS current_note_index en open (para que la variable se pierda sin dar error)
-        -- pero la cosa sería implementar en el top total algo así:
-        
-        --U_AUDIO: entity work.controladora_audio
-        --port map (
-        --  ...
-        --current_note_index => cable_indice -- ¡Conectado al cable!
-        --);
-
-        --U_VIDEO: entity work.controladora_video
-        --port map (
-        --  ...
-        --note_to_draw => cable_indice -- El video lee el cable
-        --);
-        
+        current_note_index => open
     );
 
 end Behavioral;
