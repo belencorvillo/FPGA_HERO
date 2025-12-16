@@ -4,7 +4,7 @@ use IEEE.NUMERIC_STD.ALL;
 
 entity controlador_VGA is
     Port ( 
-        clk_25MHz : in  STD_LOGIC; -- ¡Importante! Debe ser 25 MHz exactos
+        clk_108MHz : in  STD_LOGIC; -- Reloj generado por el cimponente clk_wiz_0, 108MHz
         reset     : in  STD_LOGIC;
         hsync     : out STD_LOGIC;
         vsync     : out STD_LOGIC;
@@ -17,20 +17,21 @@ end controlador_VGA;
 
 architecture Behavioral of controlador_VGA is
 
-    -- CONSTANTES ESTÁNDAR VGA 640x480 @ 60Hz
+    -- ESTÁNDAR VESA 1280x1024 @ 60Hz (Pixel Clock = 108 MHz)
+    
     -- Horizontal (Píxeles)
-    constant HD : integer := 640;  -- Display Area (Visible)
-    constant HF : integer := 16;   -- Front Porch
-    constant HB : integer := 48;   -- Back Porch
-    constant HR : integer := 96;   -- Retrace (Sync Pulse)
-    -- Total Horizontal = 640 + 16 + 48 + 96 = 800
+    constant HD : integer := 1280;  -- Área Visible
+    constant HF : integer := 48;   -- Front Porch
+    constant HB : integer := 248;   -- Back Porch
+    constant HR : integer := 112;   -- Sync Pulse
+    -- Total Horizontal = 180 + 48 + 248 + 112 = 1688
 
     -- Vertical (Líneas)
-    constant VD : integer := 480;  -- Display Area (Visible)
-    constant VF : integer := 10;   -- Front Porch
-    constant VB : integer := 33;   -- Back Porch
-    constant VR : integer := 2;    -- Retrace (Sync Pulse)
-    -- Total Vertical = 480 + 10 + 33 + 2 = 525
+    constant VD : integer := 1024;  -- Área Visible
+    constant VF : integer := 1;   -- Front Porch
+    constant VB : integer := 38;   -- Back Porch
+    constant VR : integer := 3;    -- Sync Pulse
+    -- Total Vertical = 1024 + 1 + 38 + 3 = 1066
 
     -- Contadores
     signal h_count : integer range 0 to (HD + HF + HB + HR - 1) := 0;
@@ -43,18 +44,18 @@ architecture Behavioral of controlador_VGA is
 begin
 
     -- PROCESO 1: Contadores Horizontal y Vertical
-    process(clk_25MHz, reset)
+    process(clk_108MHz, reset)
     begin
         if reset = '1' then
             h_count <= 0;
             v_count <= 0;
-        elsif rising_edge(clk_25MHz) then
+        elsif rising_edge(clk_108MHz) then
             -- Contador Horizontal
-            if h_count = (HD + HF + HB + HR - 1) then -- Si llega a 799
+            if h_count = (HD + HF + HB + HR - 1) then -- Si llega a 1039
                 h_count <= 0;
                 
                 -- Contador Vertical (solo incrementa cuando H completa una línea)
-                if v_count = (VD + VF + VB + VR - 1) then -- Si llega a 524
+                if v_count = (VD + VF + VB + VR - 1) then -- Si llega a 665
                     v_count <= 0;
                 else
                     v_count <= v_count + 1;
@@ -66,17 +67,11 @@ begin
     end process;
 
     -- PROCESO 2: Generación de Señales de Sincronismo
-    -- El estándar 640x480 usa polaridad NEGATIVA (Activo a '0')
-    -- El pulso de sincro ocurre DESPUÉS del Display y el Front Porch
+    hsync <= '1' when (h_count >= (HD + HF) and h_count < (HD + HF + HR)) else '0';
+    vsync <= '1' when (v_count >= (VD + VF) and v_count < (VD + VF + VR)) else '0';
     
-    -- HSYNC: Activo bajo entre (640+16) y (640+16+96)
-    hsync <= '0' when (h_count >= (HD + HF) and h_count < (HD + HF + HR)) else '1';
-    
-    -- VSYNC: Activo bajo entre (480+10) y (480+10+2)
-    vsync <= '0' when (v_count >= (VD + VF) and v_count < (VD + VF + VR)) else '1';
-
     -- PROCESO 3: Video On y Coordenadas
-    -- Solo dibujamos si estamos dentro de 640 horizontal y 480 vertical
+    -- Solo dibujamos si estamos dentro 
     h_video_on <= (h_count < HD);
     v_video_on <= (v_count < VD);
 
@@ -86,6 +81,6 @@ begin
     pixel_x <= h_count;
     pixel_y <= v_count;
     
-    p_tick <= clk_25MHz; -- Pasamos el reloj por si alguien lo necesita
+    p_tick <= clk_108MHz; -- Pasamos el reloj por si alguien lo necesita
 
 end Behavioral;
