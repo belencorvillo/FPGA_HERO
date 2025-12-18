@@ -29,24 +29,28 @@ entity Game_FSM is
         reset             : in  STD_LOGIC; -- Botón BTNC
         start_btn         : in  STD_LOGIC; -- Botón para iniciar (ej: BTNU o Enter)
 
-        color_pulsado       : in  STD_LOGIC_VECTOR(4 downto 0); -- teclas (G,F,D,S,A)
+        color_pulsado     : in  STD_LOGIC_VECTOR(4 downto 0); -- teclas (G,F,D,S,A)
+        esc               : in  std_logic;   
+        btn_1             : in  std_logic;   
+        btn_2             : in  std_logic;   
+        
         nota_en_hitzone   : in  STD_LOGIC_VECTOR(4 downto 0); -- De VIDEO: ¿Qué notas hay en la zona?
-        nota_pasa_hitzone : in  STD_LOGIC; 
+        nota_pasa_hitzone : in  STD_LOGIC;                    -- De VIDEO: Hay que restar vida
         song_finished     : in  STD_LOGIC;                    -- De AUDIO: ¿Acabó la canción?
         
-        current_state     : out STD_LOGIC_VECTOR(2 downto 0); -- 0:Menu, 1:Play, 2:Win, 3:Lose
+        current_state     : out STD_LOGIC_VECTOR(2 downto 0); -- 0:Menu, 1:Play, 2: Pausa, 3:Win, 4:Lose
         puntuacion        : out STD_LOGIC_VECTOR(31 downto 0);
         vida              : out INTEGER range 0 to 3;
         
-        nota_destruida         : out STD_LOGIC; -- Para hacer sonar/brillar al acertar
-        nota_fallada        : out STD_LOGIC  -- Para hacer sonar error
+        nota_destruida    : out std_logic_vector (4 downto 0); -- Vector que se pasa a vídeo si la nota está siendo destruida
+        nota_fallada      : out STD_LOGIC  -- Para hacer sonar error
     );
 end Game_FSM;
 
 architecture Behavioral of Game_FSM is
 
     -- Definición de Estados
-    type state_type is (MENU, JUGANDO, WIN, GAMEOVER);
+    type state_type is (MENU, JUGANDO, PAUSA, WIN, GAMEOVER);
     signal state, next_state : state_type;
 
     -- Registros de Juego
@@ -58,9 +62,10 @@ architecture Behavioral of Game_FSM is
     -- Detector de Flancos para los botones (Para no sumar puntos infinitos si mantienes la tecla)
     signal btn_prev     : std_logic_vector(4 downto 0) := (others => '0');
     signal btn_pressed  : std_logic_vector(4 downto 0); -- Solo vale '1' en el instante de pulsar
-    
+    signal esc_prev, one_prev, two_prev : std_logic := '0';
     signal btn_pulsado_pulse : std_logic_vector(4 downto 0);
-
+    signal pulse_esc, pulse_1, pulse_2  : std_logic;
+    
 begin
 
     Detectores_Gen: for i in 0 to 4 generate
@@ -72,6 +77,19 @@ begin
         );
     end generate;
 
+    Det_1: entity work.DetectorFlancosSubida
+    port map (
+        CLK     => clk,
+        SYNC_IN => btn_1,
+        EDGE    => pulse_1
+    );
+
+    Det_2: entity work.DetectorFlancosSubida
+    port map (
+        CLK     => clk,
+        SYNC_IN => btn_2,
+        EDGE    => pulse_2
+    );
    
     process(clk)
     begin
@@ -96,15 +114,17 @@ begin
 
                     when JUGANDO =>
                     
-                        if lives = 0 then
+                        if pulse_esc = '1' then
+                            state <= PAUSA;                            
+                        elsif lives = 0 then
                             state <= GAMEOVER; --perder
                         elsif song_finished = '1' then
                             state <= WIN; --ganar
                         end if;
 
-                        if (btn_pulsado_pulse /= "00000") then
+                        if (btn_pulsado_pulse /= "00000") then --Si se pulsa un botón y este coincide con el que viene de vídeo entonces es un acierto
                             if (btn_pulsado_pulse = nota_en_hitzone) then
-                                nota_destruida <= '1'; --acierto
+                                nota_destruida <= btn_pulsado_pulse; --acierto
                                 
                                 -- Cálculo de Puntos
                                 if (nota_en_hitzone = "00001" or nota_en_hitzone="00010" or nota_en_hitzone="00100" or nota_en_hitzone="01000" or nota_en_hitzone="10000") then
@@ -119,15 +139,12 @@ begin
                                     multiplier <= 2; -- Activar x2
                                 end if;
 
-                            else
-                                nota_fallada <= '1'; --fallo
+                            else -- SI no son exactamente iguales no se destruye nada
+                                nota_destruida <= "00000"; --fallo
                                 combo_cnt <= 0;
                                 multiplier <= 1;
                                 if lives > 0 then lives <= lives - 1; end if;
                             end if;
-                        else
-                            nota_destruida <= '0';
-                            nota_fallada <= '0';
                         end if;
                         
                         if nota_pasa_hitzone = '1' then
@@ -136,7 +153,18 @@ begin
                             multiplier <= 1;
                             if lives > 0 then lives <= lives - 1; end if;
                         end if;
+                    
+                    when PAUSA =>
+                        if pulse_1 = '1' then
+                            state <= MENU;
                         
+                        elsif pulse_2 = '1' then
+                            state <= JUGANDO;
+                            
+                        elsif pulse_esc = '1' then -- Si pulsa esc tmbn vuelve a partida
+                            state <= JUGANDO;
+                        end if;
+                            
                     when WIN =>
                         if start_btn = '1' then state <= MENU; end if; --Se congela todo y se espera reset
 
@@ -158,5 +186,6 @@ begin
                          "001" when JUGANDO,
                          "010" when WIN,
                          "011" when GAMEOVER,
+                         "100" when PAUSA,
                          "000" when others;
 end Behavioral;
