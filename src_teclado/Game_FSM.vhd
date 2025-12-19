@@ -43,6 +43,7 @@ entity Game_FSM is
         vida              : out INTEGER range 0 to 3;
         
         nota_destruida    : out std_logic_vector (4 downto 0); -- Vector que se pasa a vídeo si la nota está siendo destruida
+        nota_acierto      : out STD_LOGIC;
         nota_fallada      : out STD_LOGIC  -- Para hacer sonar error
     );
 end Game_FSM;
@@ -65,6 +66,7 @@ architecture Behavioral of Game_FSM is
     signal esc_prev, one_prev, two_prev : std_logic := '0';
     signal btn_pulsado_pulse : std_logic_vector(4 downto 0);
     signal pulse_esc, pulse_1, pulse_2  : std_logic;
+    signal acierto : std_logic := '0';
     
 begin
 
@@ -94,6 +96,9 @@ begin
     process(clk)
     begin
         if rising_edge(clk) then
+            acierto <= '0';         
+            nota_fallada <= '0';
+            nota_destruida <= "00000";
             if reset = '1' then
                 state <= MENU;
                 score <= 0;
@@ -125,7 +130,7 @@ begin
                         if (btn_pulsado_pulse /= "00000") then --Si se pulsa un botón y este coincide con el que viene de vídeo entonces es un acierto
                             if (btn_pulsado_pulse = nota_en_hitzone) then
                                 nota_destruida <= btn_pulsado_pulse; --acierto
-                                
+                                acierto <= '1';
                                 -- Cálculo de Puntos
                                 if (nota_en_hitzone = "00001" or nota_en_hitzone="00010" or nota_en_hitzone="00100" or nota_en_hitzone="01000" or nota_en_hitzone="10000") then
                                     score <= score + (50 * multiplier); -- Nota normal
@@ -180,6 +185,7 @@ begin
 
     puntuacion <= std_logic_vector(to_unsigned(score, 32)); --cast de integer a vector
     vida <= lives;
+    nota_acierto <= acierto;
 
     with state select
         current_state <= "000" when MENU,
