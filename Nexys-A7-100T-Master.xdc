@@ -1,33 +1,26 @@
 ## Clock signal
-set_property -dict { PACKAGE_PIN E3    IOSTANDARD LVCMOS33 } [get_ports { CLK }]; 
-create_clock -add -name sys_clk_pin -period 10.00 -waveform {0 5} [get_ports { CLK }];
+set_property -dict { PACKAGE_PIN E3    IOSTANDARD LVCMOS33 } [get_ports { CLK100MHZ }]; 
+create_clock -add -name sys_clk_pin -period 10.00 -waveform {0 5} [get_ports { CLK100MHZ }];
 
-### Reset (CPU_RESETN)
-#set_property -dict { PACKAGE_PIN C12   IOSTANDARD LVCMOS33 } [get_ports { CPU_RESETN }];
+## Switches
+set_property -dict { PACKAGE_PIN J15   IOSTANDARD LVCMOS33 } [get_ports { SW[0] }]; # Play_Enable
+set_property -dict { PACKAGE_PIN L16   IOSTANDARD LVCMOS33 } [get_ports { SW[1] }]; # Estado Bit 0
+set_property -dict { PACKAGE_PIN M13   IOSTANDARD LVCMOS33 } [get_ports { SW[2] }]; # Estado Bit 1
+set_property -dict { PACKAGE_PIN R15   IOSTANDARD LVCMOS33 } [get_ports { SW[3] }]; # Estado Bit 2
 
-### Audio PWM Output
-#set_property -dict { PACKAGE_PIN A11   IOSTANDARD LVCMOS33 } [get_ports { AUD_PWM }];
-#set_property -dict { PACKAGE_PIN D12   IOSTANDARD LVCMOS33 } [get_ports { AUD_SD }];
+## LEDs
+set_property -dict { PACKAGE_PIN H17   IOSTANDARD LVCMOS33 } [get_ports { LED[0] }]; # Fin Canción
+set_property -dict { PACKAGE_PIN K15   IOSTANDARD LVCMOS33 } [get_ports { LED[1] }]; # Estado Mirror
+set_property -dict { PACKAGE_PIN J13   IOSTANDARD LVCMOS33 } [get_ports { LED[2] }]; # Estado Mirror
+set_property -dict { PACKAGE_PIN N14   IOSTANDARD LVCMOS33 } [get_ports { LED[3] }]; # Estado Mirror
 
-### Switch 0 (Para probar el sonido)
-#set_property -dict { PACKAGE_PIN J15   IOSTANDARD LVCMOS33 } [get_ports { SW[0] }];
+## Buttons
+set_property -dict { PACKAGE_PIN N17   IOSTANDARD LVCMOS33 } [get_ports { BTNC }]; # Nota Fallada (Centro)
+set_property -dict { PACKAGE_PIN M18   IOSTANDARD LVCMOS33 } [get_ports { BTNU }]; # User Hit (Arriba)
 
-## LED 0 (Test visual)
-set_property -dict { PACKAGE_PIN H17   IOSTANDARD LVCMOS33 } [get_ports { LED[0] }];
-## ps2_code leds
-set_property -dict { PACKAGE_PIN K15   IOSTANDARD LVCMOS33 } [get_ports { ps2_code[0] }];
-set_property -dict { PACKAGE_PIN J13   IOSTANDARD LVCMOS33 } [get_ports { ps2_code[1] }];
-set_property -dict { PACKAGE_PIN N14   IOSTANDARD LVCMOS33 } [get_ports { ps2_code[2] }];
-set_property -dict { PACKAGE_PIN R18   IOSTANDARD LVCMOS33 } [get_ports { ps2_code[3] }];
-set_property -dict { PACKAGE_PIN V17   IOSTANDARD LVCMOS33 } [get_ports { ps2_code[4] }];
-set_property -dict { PACKAGE_PIN U17   IOSTANDARD LVCMOS33 } [get_ports { ps2_code[5] }];
-set_property -dict { PACKAGE_PIN U16   IOSTANDARD LVCMOS33 } [get_ports { ps2_code[6] }];
-set_property -dict { PACKAGE_PIN V16   IOSTANDARD LVCMOS33 } [get_ports { ps2_code[7] }]; 
+## Audio PWM
+set_property -dict { PACKAGE_PIN A11   IOSTANDARD LVCMOS33 } [get_ports { AUD_PWM }]; 
+set_property -dict { PACKAGE_PIN D12   IOSTANDARD LVCMOS33 } [get_ports { AUD_SD }]; 
 
-#Para codenew
-set_property -dict { PACKAGE_PIN V11   IOSTANDARD LVCMOS33 } [get_ports { ps2_code_new }];
-
-########CONTROL TECLADO#########
-## USB HID (PS/2)
-set_property -dict { PACKAGE_PIN F4    IOSTANDARD LVCMOS33 } [get_ports { ps2_clk }]; 
-set_property -dict { PACKAGE_PIN B2    IOSTANDARD LVCMOS33 } [get_ports { ps2_data }];
+## CPU Reset
+set_property -dict { PACKAGE_PIN C12   IOSTANDARD LVCMOS33 } [get_ports { CPU_RESETN }];

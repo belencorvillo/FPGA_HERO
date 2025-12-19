@@ -5,7 +5,7 @@ use IEEE.NUMERIC_STD.ALL;
 entity vga_test_top is
     Port ( 
         clk     : in STD_LOGIC; -- Pin E3 (100 MHz)
-        CPU_RESETN   : in STD_LOGIC; 
+        rst_n   : in STD_LOGIC; 
         
         -- Salidas VGA físicas
         hsync     : out STD_LOGIC;
@@ -60,7 +60,7 @@ begin
     -- 2. INSTANCIA DEL CONTROLADOR
     uut: controlador_VGA Port Map (
         clk_25MHz => clk_25MHz,
-        reset     => NOT CPU_RESETN,
+        reset     => NOT rst_n,
         hsync     => hsync,
         vsync     => vsync,
         video_on  => video_on_sig,
