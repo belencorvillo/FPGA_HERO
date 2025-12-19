@@ -126,7 +126,7 @@ component Audio_Controller_Top is
     signal aud_done     : std_logic;
     
     -- Señales que van DE FSM HACIA Video/Audio
-    signal fsm_hit_fx   : std_logic;
+    signal acierto_fsm   : std_logic;
     signal nota_fallada_fms  : std_logic;
     signal nota_destruida_fms  : std_logic_vector(4 downto 0);
 
@@ -185,10 +185,9 @@ begin
         
         -- Feedback
         nota_destruida  => nota_destruida_fms,
-        nota_fallada    => nota_fallada_fms -- Usaremos esto para sonido miss
+        nota_fallada    => nota_fallada_fms, -- Usaremos esto para sonido miss
+        nota_acierto    => acierto_fsm
     );
-    -- Generamos fsm_hit_fx si se destruye alguna nota (OR lógico del vector)
-    fsm_hit_fx <= '0' when nota_destruida_fms = "00000" else '1';
 
     -------------------------------------------------------------------------
     -- 3. PERIFÉRICOS DE SALIDA (TUS MÓDULOS)
@@ -240,7 +239,7 @@ begin
     --     clk_100mhz      => CLK100MHZ,
     --     reset           => BTNC,
     --     current_state   => game_state,
-    --     hit_effect      => fsm_hit_fx,
+    --     hit_effect      => acierto_fsm,
     --     miss_effect     => nota_fallada_fms, -- Viene de nota_fallada de la FSM
     --     song_finished   => aud_done,    -- CABLE CLAVE: FSM lee esto
     --     audio_out       => AUD_PWM
