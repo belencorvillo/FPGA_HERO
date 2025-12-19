@@ -60,13 +60,6 @@ begin
             block_x := pixel_x / 8; 
             block_y := pixel_y / 8;
             
-            -- Animación de salto ("Bouncing Crowd")
-            -- Usamos el bit 21 para el ritmo. Solo saltan las columnas pares para dar variedad.
-            if ((anim_cnt(21) = '1') and (block_x mod 2 = 0)) then
-                jump_offset := 1; 
-            else
-                jump_offset := 0;
-            end if;
 
             -- 1. EL CIELO (Los primeros 30 bloques de alto = 240px)
             if block_y < 30 then
@@ -82,40 +75,7 @@ begin
                      end if;
                 end if;
                 
-            -- 2. EL PÚBLICO (Del bloque 30 hacia abajo)
-            else
-                -- Dibujamos monigotes de 3 bloques de alto (Cabeza, Cuerpo, Piernas)
-                -- Total 24px de altura por persona.
-                
-                if (block_y - jump_offset) mod 3 = 0 then
-                    -- CABEZAS (Tonos piel variados según posición X)
-                    if (block_x mod 5) = 0 then r:="0101"; g:="0011"; b:="0001"; -- Piel oscura
-                    else                        r:="1110"; g:="1010"; b:="0100"; -- Piel clara
-                    end if;
-                    
-                elsif (block_y - jump_offset) mod 3 = 1 then
-                    -- CAMISETAS (Patrón de colores repetitivo)
-                    case block_x mod 8 is
-                        when 0 | 1 => r:="1000"; g:="0000"; b:="0000"; -- Rojo
-                        when 2 | 3 => r:="0000"; g:="1000"; b:="0000"; -- Verde
-                        when 4 | 5 => r:="0000"; g:="0000"; b:="1000"; -- Azul
-                        when others=> r:="1110"; g:="1110"; b:="0000"; -- Amarillo
-                    end case;
-                    -- Un poco de sombra en el píxel derecho del bloque para volumen
-                    if pixel_x mod 8 > 6 then 
-                        r:=std_logic_vector(unsigned(r) srl 1); 
-                        g:=std_logic_vector(unsigned(g) srl 1); 
-                        b:=std_logic_vector(unsigned(b) srl 1);
-                    end if;
-
-                else
-                    -- PANTALONES (Vaqueros o Negros)
-                    if (block_x mod 2) = 0 then r:="0000"; g:="0000"; b:="0101"; -- Jeans
-                    else                        r:="0001"; g:="0001"; b:="0001"; -- Negro
-                    end if;
-                end if;
-            end if;
-
+           end if;
             -- =================================================================
             -- CAPA 1: LA GUITARRA HD (Vectorial - Sobrescribe al Pixel Art)
             -- =================================================================
