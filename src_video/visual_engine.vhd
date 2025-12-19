@@ -6,7 +6,7 @@ use work.music_pkg.ALL;
 
 entity visual_engine is
     Generic (
-        FALL_SPEED  : integer := 8;    -- Velocidad rápida para pantalla 1024p
+        FALL_SPEED  : integer := 4;    -- Velocidad rápida para pantalla 1024p
         TARGET_Y    : integer := 900;  -- Posición de la línea de meta
         HIT_MARGIN  : integer := 20    -- Margen estricto (+/- 20px = Ventana de ~80ms)
     );
@@ -71,7 +71,7 @@ architecture Behavioral of visual_engine is
     -- Vector interno de disparo (Spawn)
     signal spawn_vector     : std_logic_vector(4 downto 0) := (others => '0');
     signal next_note_len    : integer range 0 to 1000 := 40;
-    
+    signal vsync_prev : std_logic := '0';
     
 begin
 
@@ -143,35 +143,47 @@ begin
         variable zone_bot    : integer; 
         variable any_miss    : std_logic; -- Ha habido fallo -> para MDE
         variable lane_active : std_logic; -- Variable para saber si el carril K tiene nota en zona
+        variable frame_tick  : boolean; -- Variable auxiliar
     begin
         if reset = '1' then
             tracks_y         <= (others => (others => 1200));
             tracks_len       <= (others => (others => 40));
             life_lost_pulse  <= '0';
             note_in_zone <= (others => '0'); -- Reset salida
+            vsync_prev      <= '0';
             
         elsif rising_edge(clk) then
+        -- DETECTOR DE FLANCO DE VSYNC (Para contar 1 frame exacto)
+            frame_tick := false;
+            if (vsync = '1' and vsync_prev = '0') then -- Flanco de subida
+                frame_tick := true;
+            end if;
+            vsync_prev <= vsync; -- Guardamos estado anterior
+        
             life_lost_pulse <= '0';
             any_miss        := '0';
             zone_top := TARGET_Y - HIT_MARGIN;
             zone_bot := TARGET_Y + HIT_MARGIN;
             
-            if enable = '1' and vsync = '0' then -- Actualizamos física cuando estamos en ESTADO JUEGO y ocurre el VSYNC (aprox 60fps)
-                for k in 0 to 4 loop -- Iteramos por los 5 carriles (Colores)
-                    lane_active := '0'; -- Reseteamos flag por cada carril
-                    
+           if enable = '1' then  
             -- 1) SPAWN: Si el proceso 1 pidió nota nueva, buscamos hueco
+                 for k in 0 to 4 loop
                     if spawn_vector(k) = '1' then
                         for i in 0 to 3 loop
+                            -- Solo creamos si está libre (fuera de pantalla)
                             if tracks_y(k)(i) >= 1200 then 
-                                tracks_y(k)(i)   <= 0;
+                                tracks_y(k)(i)   <= 0; -- ¡Nace arriba!
                                 tracks_len(k)(i) <= next_note_len; 
                                 exit; 
                             end if;
                         end loop;
                     end if;
+                end loop;
 
             -- 2) MOVIMIENTO
+                if frame_tick then 
+                    for k in 0 to 4 loop
+                        lane_active := '0'; -- Reset por carril
                     for i in 0 to 3 loop
                         if tracks_y(k)(i) < 1100 then 
                             note_head_y := tracks_y(k)(i);
@@ -204,6 +216,7 @@ begin
                 end loop; -- Fin loop de carriles                
                 if any_miss = '1' then life_lost_pulse <= '1'; 
                 end if;
+            end if;
             end if;
         end if;
     end process;

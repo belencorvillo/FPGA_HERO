@@ -2,7 +2,7 @@ library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
-entity dibujo_menu is
+entity dibujo_pausa is
     Port ( 
         clk               : in  STD_LOGIC;
         tick_cambio_frame : in  STD_LOGIC; -- ¡NUEVO! Conecta aquí tu pulso de 200ms o 500ms
@@ -12,9 +12,9 @@ entity dibujo_menu is
         green_out         : out STD_LOGIC_VECTOR (3 downto 0);
         blue_out          : out STD_LOGIC_VECTOR (3 downto 0)
     );
-end dibujo_menu;
+end dibujo_pausa;
 
-architecture Behavioral of dibujo_menu is
+architecture Behavioral of dibujo_pausa is
 
     -- =========================================================================
     -- CONFIGURACIÓN DE LA ANIMACIÓN
