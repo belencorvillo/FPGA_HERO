@@ -1,64 +1,84 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
--- No necesitamos numeric_std aquí porque solo conectamos cables
+use IEEE.NUMERIC_STD.ALL;
 
 entity top_sonido is
-    Port ( 
-        CLK100MHZ : in STD_LOGIC;
-        CPU_RESETN : in STD_LOGIC;
-        
-        -- INTERFAZ FÍSICA
-        SW   : in STD_LOGIC_VECTOR(3 downto 0); -- 4 Interruptores
-        BTNC : in STD_LOGIC; -- Botón Central (Fallo)
-        BTNU : in STD_LOGIC; -- Botón Arriba (Acierto)
-        
-        -- SALIDAS
-        AUD_PWM : out STD_LOGIC;
-        AUD_SD  : out STD_LOGIC;
-        LED     : out STD_LOGIC_VECTOR(3 downto 0) -- Feedback visual
+    Generic (
+        G_SIMULATION : boolean := false -- False para síntesis real, True para testbench
+        -- La usamos porque sino para ver las notas musicales en un testbench tardaríamos muchísimos ciclos
+    );
+    Port (
+        clk      : in  STD_LOGIC;
+        rst      : in  STD_LOGIC;
+        en_bocina: in  STD_LOGIC;                     -- Interruptor de encendido
+        nota_sel : in  STD_LOGIC_VECTOR(1 downto 0);  -- Selector de nota (00, 01, 10, 11)
+        audio_out: out STD_LOGIC
     );
 end top_sonido;
 
 architecture Behavioral of top_sonido is
-    
-    signal reset_sys : std_logic;
-    signal fin_cancion : std_logic;
-    
-    -- Señales para separar los cables de los switches y que sea legible
-    signal s_play_enable : std_logic;
-    signal s_estado_fms  : std_logic_vector(2 downto 0);
+
+    -- Frecuencias para 50 MHz (Valores reales)
+    -- DO (261 Hz), RE (293 Hz), MI (329 Hz), FA (349 Hz)
+    -- Divisor = 50,000,000 / (Frec * 2)
+    constant DIV_DO : integer := 95785; 
+    constant DIV_RE : integer := 85324;
+    constant DIV_MI : integer := 75987;
+    constant DIV_FA : integer := 71633;
+
+    signal divisor_actual : integer;
+    signal counter        : integer range 0 to 100000 := 0;
+    signal audio_reg      : std_logic := '0';
 
 begin
-    -- 1. Gestión del Reset (El botón rojo es lógica negativa)
-    reset_sys <= not CPU_RESETN;
-    
-    -- 2. Asignación de Interruptores a señales lógicas
-    s_play_enable <= SW(0);          -- El interruptor de la derecha del todo
-    s_estado_fms  <= SW(3 downto 1); -- Los 3 siguientes
-    
-    -- 3. Feedback visual en los LEDs
-    LED(0) <= fin_cancion;         -- LED 0 avisa si acabó la canción
-    LED(3 downto 1) <= s_estado_fms; -- LEDs 3-1 muestran qué estado estamos simulando
 
-    -- 4. Instancia de tu Controladora
-    U_AUDIO: entity work.controladora_audio
-    port map (
-        clk_100MHz    => CLK100MHZ,
-        reset         => reset_sys,
-        
-        -- Entradas de Control
-        play_enable   => s_play_enable,
-        current_state => s_estado_fms,
-        
-        -- Entradas de Juego (Botones)
-        nota_fallada  => BTNC, -- Botón Central = Error
-        user_hit      => BTNU, -- Botón Arriba = Tocar nota
-        
-        -- Salidas
-        pwm_audio     => AUD_PWM,
-        pwm_sd        => AUD_SD,
-        song_finished => fin_cancion,
-        current_note_index => open -- No lo necesitamos para esta prueba física
-    );
+    --  Mux para seleccionar el tope de cuenta según la nota
+    process(nota_sel)
+    begin
+        case nota_sel is
+            when "00" => divisor_actual <= DIV_DO;
+            when "01" => divisor_actual <= DIV_RE;
+            when "10" => divisor_actual <= DIV_MI;
+            when "11" => divisor_actual <= DIV_FA;
+            when others => divisor_actual <= DIV_DO;
+        end case;
+    end process;
+
+    --  Generación de Frecuencia
+    process(clk, rst)
+        -- Variable para ajustar el límite dinámicamente según simulación o real
+        variable limite_cuenta : integer;
+    begin
+        if rst = '1' then
+            counter <= 0;
+            audio_reg <= '0';
+        elsif rising_edge(clk) then
+            if en_bocina = '1' then
+                
+                -- TRUCO PARA TESTBENCH:
+                -- Si estamos simulando, contamos solo hasta 100 ticks para ver la onda rápido.
+                -- Si es real, usamos el divisor matemático correcto.
+                if G_SIMULATION then
+                    -- Simulamos diferentes periodos dividiendo el divisor real por 1000 o usando constantes pequeñas
+                    limite_cuenta := divisor_actual / 1000; 
+                else
+                    limite_cuenta := divisor_actual;
+                end if;
+
+                if counter >= limite_cuenta then
+                    audio_reg <= not audio_reg; -- Conmutar señal
+                    counter <= 0;
+                else
+                    counter <= counter + 1;
+                end if;
+            else
+                -- Si no está habilitado, silencio (salida a 0)
+                audio_reg <= '0';
+                counter <= 0;
+            end if;
+        end if;
+    end process;
+
+    audio_out <= audio_reg;
 
 end Behavioral;
