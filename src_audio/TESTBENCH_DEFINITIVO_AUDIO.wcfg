@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="tb_top_sonido_behav.wdb" id="1">
+         <top_modules>
+            <top_module name="tb_top_sonido" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0.000000 us"></ZoomStartTime>
+      <ZoomEndTime time="76.300001 us"></ZoomEndTime>
+      <Cursor1Time time="59.850000 us"></Cursor1Time>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="172"></NameColumnWidth>
+      <ValueColumnWidth column_width="170"></ValueColumnWidth>
+   </column_width_setting>
+   <WVObjectSize size="6" />
+   <wvobject fp_name="/tb_top_sonido/clk" type="logic">
+      <obj_property name="ElementShortName">clk</obj_property>
+      <obj_property name="ObjectShortName">clk</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_top_sonido/rst" type="logic">
+      <obj_property name="ElementShortName">rst</obj_property>
+      <obj_property name="ObjectShortName">rst</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_top_sonido/en_bocina" type="logic">
+      <obj_property name="ElementShortName">en_bocina</obj_property>
+      <obj_property name="ObjectShortName">en_bocina</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_top_sonido/nota_sel" type="array">
+      <obj_property name="ElementShortName">nota_sel[1:0]</obj_property>
+      <obj_property name="ObjectShortName">nota_sel[1:0]</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_top_sonido/audio_out" type="logic">
+      <obj_property name="ElementShortName">audio_out</obj_property>
+      <obj_property name="ObjectShortName">audio_out</obj_property>
+   </wvobject>
+   <wvobject fp_name="/tb_top_sonido/CLK_PERIOD" type="other">
+      <obj_property name="ElementShortName">CLK_PERIOD</obj_property>
+      <obj_property name="ObjectShortName">CLK_PERIOD</obj_property>
+   </wvobject>
+</wave_config>
