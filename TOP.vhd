@@ -34,7 +34,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 entity TOP is
     Port(
         CLK          : in  STD_LOGIC;
-        BTNC         : in  STD_LOGIC; -- Reset Global
+        CPU_RESETN    : in  STD_LOGIC; -- Reset Global
         BTNU         : in  STD_LOGIC; -- Botón Start (Físico en placa)
 
         -- ENTRADA TECLADO
