@@ -240,6 +240,28 @@ begin
         blue_out          => pausa_b
     );
     
+    win_painter : dibujo_victoria
+    port map (
+        clk               => clk_108MHz,
+        tick_cambio_frame => tick_anim,
+        pixel_x           => pixel_x,
+        pixel_y           => pixel_y,
+        red_out           => win_r_r,
+        green_out         => win_g,
+        blue_out          => win_b
+    );
+
+    lose_painter : dibujo_derrota
+    port map (
+        clk               => clk_108MHz,
+        tick_cambio_frame => tick_anim,
+        pixel_x           => pixel_x,
+        pixel_y           => pixel_y,
+        red_out           => lose_r,
+        green_out         => lose_g,
+        blue_out          => lose_b
+    );
+
     menu_painter: dibujo_menu_simple 
         Port map ( 
         clk      => clk_108MHz,
