@@ -22,15 +22,6 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 
--- Uncomment the following library declaration if using
--- arithmetic functions with Signed or Unsigned values
---use IEEE.NUMERIC_STD.ALL;
-
--- Uncomment the following library declaration if instantiating
--- any Xilinx leaf cells in this code.
---library UNISIM;
---use UNISIM.VComponents.all;
-
 entity TOP is
     Port(
         CLK          : in  STD_LOGIC;
@@ -42,11 +33,11 @@ entity TOP is
         PS2_DATA     : in  STD_LOGIC;
 
         -- SALIDA VIDEO 
-        VGA_R        : out STD_LOGIC_VECTOR(3 downto 0);
-        VGA_G        : out STD_LOGIC_VECTOR(3 downto 0);
-        VGA_B        : out STD_LOGIC_VECTOR(3 downto 0);
-        VGA_HS       : out STD_LOGIC;
-        VGA_VS       : out STD_LOGIC;
+        red_out        : out STD_LOGIC_VECTOR(3 downto 0);
+        green_out        : out STD_LOGIC_VECTOR(3 downto 0);
+        blue_out        : out STD_LOGIC_VECTOR(3 downto 0);
+        hsync       : out STD_LOGIC;
+        vsync       : out STD_LOGIC;
 
         -- SALIDA AUDIO
         AUD_PWM      : out STD_LOGIC; -- Salida de Audio Mono
@@ -61,53 +52,14 @@ entity TOP is
         -- LEDs RGB (Vidas)
         LED16_G, LED16_R, LED16_B : out STD_LOGIC;
         LED17_G, LED17_R, LED17_B : out STD_LOGIC;
+        LED :out std_logic_vector (2 downto 0)
         
-        -- LEDs Normales (Debug / Estado)
-        LED          : out STD_LOGIC_VECTOR(15 downto 0));
+        );
+        
+
 end TOP;
 
 architecture Behavioral of TOP is
-
-component VGA_Controller_Top is
-        Port ( 
-            clk      : in  STD_LOGIC;
-            reset           : in  STD_LOGIC;
-            
-            -- Datos del Juego
-            current_state   : in  STD_LOGIC_VECTOR(2 downto 0); -- Menu, Play...
-            nota_destruida  : in  STD_LOGIC_VECTOR(4 downto 0); -- vector pulsado
-            puntuacion      : in  STD_LOGIC_VECTOR(31 downto 0); 
-            
-            -- Retorno a la FSM 
-            note_en_hitzone    : out STD_LOGIC_VECTOR(4 downto 0);
-            note_pasa_hitzone  : out STD_LOGIC;                    
-
-            -- Salidas Físicas
-            vga_r, vga_g, vga_b : out STD_LOGIC_VECTOR(3 downto 0);
-            vga_hs, vga_vs      : out STD_LOGIC
-        );
-    end component;
-
-component Audio_Controller_Top is
-        Port ( 
-            CLK             : in  STD_LOGIC;
-            reset           : in  STD_LOGIC;
-            
-            -- Control
-            current_state   : in  STD_LOGIC_VECTOR(2 downto 0);
-            user_hit        : in  STD_LOGIC; -- Sonido de acierto
-            play_enable     : in  STD_LOGIC; 
-            nota_fallada    : in  STD_LOGIC; -- Sonido de error
-            
-            -- Retorno a FSM
-            song_finished   : out STD_LOGIC;
-            
-            -- Salidas Físicas
-            pwm_audio       : out STD_LOGIC;
-            pwm_sd          : out STD_LOGIC;
-            current_note_index: out integer range 0 to 499
-        );
-    end component;
     
     -- Teclado y Decoder
     signal sig_new_code : std_logic;
@@ -129,18 +81,13 @@ component Audio_Controller_Top is
     signal acierto_fsm   : std_logic;
     signal nota_fallada_fms  : std_logic;
     signal nota_destruida_fms  : std_logic_vector(4 downto 0);
+    
+    --De video a audio
+    signal empezar :std_logic;
 
     -- Cables Display
     signal seg_vector   : std_logic_vector(6 downto 0);
 begin
--- Asignaciones Físicas Estáticas
-    AUD_SD <= '1'; -- Habilitar amplificador de audio
-    DP     <= '1'; -- Apagar punto decimal
-    LED(15 downto 3) <= (others => '0'); -- Limpiar LEDs extra
-    
-    -- Debug visual simple en LEDs 0-2 (Estado del juego)
-    LED(2 downto 0) <= game_state; 
-
     -------------------------------------------------------------------------
     -- 1. BLOQUE DE ENTRADA (TUS MÓDULOS)
     -------------------------------------------------------------------------
@@ -152,7 +99,7 @@ begin
 
     DECODER: entity work.guitar_decoder
     port map (
-        clk => CLK, reset => BTNC,
+        clk => CLK, reset => CPU_RESETN,
         ps2_code_new => sig_new_code, ps2_code => sig_keycode, 
         color_pulsado => user_keys, 
         btn_esc => cmd_esc, btn_1 => cmd_1, btn_2 => cmd_2
@@ -164,7 +111,7 @@ begin
     BRAIN: entity work.Game_FSM
     port map (
         clk             => CLK,
-        reset           => BTNC,
+        reset           => CPU_RESETN,
         start_btn       => BTNU,
         
         -- Entradas de Control
@@ -195,7 +142,7 @@ begin
     -- Pantalla 7 Segmentos
     SCORE_DISP: entity work.score_display_ctrl
     port map (
-        clk => CLK, reset => BTNC, score_in => score_data, 
+        clk => CLK, reset => CPU_RESETN, score_in => score_data, 
         seg_anodes => AN, seg_cathodes => seg_vector
     );
     -- Desempaquetado 7-seg
@@ -205,7 +152,7 @@ begin
     -- Barra de Vida RGB
     LIVES_CTRL: entity work.life_bar_ctrl
     port map (
-        clk => CLK, reset => BTNC, lives => lives_data,
+        clk => CLK, reset => CPU_RESETN, lives => lives_data,
         led16_r => LED16_R, led16_g => LED16_G, led16_b => LED16_B,
         led17_r => LED17_R, led17_g => LED17_G, led17_b => LED17_B
     );
@@ -214,35 +161,33 @@ begin
     -- 4. INTEGRACIÓN DE COMPAÑEROS (PLACEHOLDERS)
     -------------------------------------------------------------------------
     
-    -- MIEMBRO 1: VIDEO
-    -- Descomentar cuando te pase el archivo "VGA_Controller_Top.vhd"
-    -- VIDEO_SYS: component VGA_Controller_Top
-    -- port map (
-    --     clk_100mhz      => CLK100MHZ,
-    --     reset           => BTNC,
-    --     current_state   => game_state,
-    --     keys_pressed    => user_keys,    -- Para que pinte qué pulsas
-    --     score           => score_data,   -- Para pintar puntuación en pantalla (opcional)
-    --     nota_destruida  => nota_destruida_fms,  -- Para la explosión visual
-    --     
-    --     note_hitzone    => vid_hitzone,  -- CABLE CLAVE: FSM lee esto
-    --     note_miss_pulse => vid_miss,     -- CABLE CLAVE: FSM lee esto
-    --     
-    --     vga_r => VGA_R, vga_g => VGA_G, vga_b => VGA_B,
-    --     vga_hs => VGA_HS, vga_vs => VGA_VS
-    -- );
-    
-    -- MIEMBRO 2: AUDIO
-    -- Descomentar cuando te pase el archivo "Audio_Controller_Top.vhd"
-    -- AUDIO_SYS: component Audio_Controller_Top
-    -- port map (
-    --     clk_100mhz      => CLK100MHZ,
-    --     reset           => BTNC,
-    --     current_state   => game_state,
-    --     hit_effect      => acierto_fsm,
-    --     miss_effect     => nota_fallada_fms, -- Viene de nota_fallada de la FSM
-    --     song_finished   => aud_done,    -- CABLE CLAVE: FSM lee esto
-    --     audio_out       => AUD_PWM
-    -- );
+    AUDIO: entity work.controladora_audio
+    port map (
+        clk_100MHz => CLK,
+        reset      => CPU_RESETN,
+        user_hit   => nota_fallada_fms, -- '1' si el usuario está acertando (suena), '0' silencio
+        pwm_audio  => AUD_PWM,
+        pwm_sd     => AUD_SD, -- apagamos sonido (shutdown)
+        play_enable => empezar,  -- '1' = Reproducir, '0' = Reset/Parar
+        song_finished => aud_done, -- '1' = Canción terminada
+        current_state =>  game_state, -- Viene de la FSM
+        nota_fallada  => nota_fallada_fms  -- Pulso cuando el usuario falla
+    );
 
+    VIDEO: entity work.visual_top
+    port map (
+         clk      => CLK,
+         reset           => CPU_RESETN,
+         
+         sw_mode   => game_state,
+         destruccion  => nota_destruida_fms,  -- Para la explosión visual
+         hitzone    => vid_hitzone,  -- CABLE CLAVE: FSM lee esto
+         fallo => vid_miss,     -- CABLE CLAVE: FSM lee esto
+         comienzo_audio => empezar,
+         
+         red_out => red_out, green_out => green_out, blue_out => blue_out,
+         hsync => hsync, vsync => vsync
+    );
+    
+    LED <= game_state;
 end Behavioral;
