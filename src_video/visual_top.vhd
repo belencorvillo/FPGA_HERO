@@ -139,7 +139,6 @@ architecture Behavioral of visual_top is
         blue_out : out STD_LOGIC_VECTOR (3 downto 0)
     );
     end component;
-
     -- =========================================================================
     -- SEÑALES
     -- =========================================================================
