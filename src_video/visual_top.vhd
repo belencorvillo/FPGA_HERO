@@ -141,6 +141,28 @@ architecture Behavioral of visual_top is
         blue_out : out STD_LOGIC_VECTOR (3 downto 0)
     );
     end component;
+    
+    component dibujo_victoria is
+    Port ( 
+        clk      : in  STD_LOGIC; -- Necesitamos reloj para leer la ROM sincronizada
+        pixel_x  : in  INTEGER;
+        pixel_y  : in  INTEGER;
+        red_out  : out STD_LOGIC_VECTOR (3 downto 0);
+        green_out: out STD_LOGIC_VECTOR (3 downto 0);
+        blue_out : out STD_LOGIC_VECTOR (3 downto 0)
+    );
+    end component;
+    
+    component dibujo_derrota is
+    Port ( 
+        clk      : in  STD_LOGIC; -- Necesitamos reloj para leer la ROM sincronizada
+        pixel_x  : in  INTEGER;
+        pixel_y  : in  INTEGER;
+        red_out  : out STD_LOGIC_VECTOR (3 downto 0);
+        green_out: out STD_LOGIC_VECTOR (3 downto 0);
+        blue_out : out STD_LOGIC_VECTOR (3 downto 0)
+    );
+    end component;
     -- =========================================================================
     -- SEÑALES
     -- =========================================================================
@@ -271,7 +293,7 @@ begin
     win_painter : dibujo_victoria
     port map (
         clk               => clk_108MHz,
-        tick_cambio_frame => tick_anim,
+        --tick_cambio_frame => tick_anim,
         pixel_x           => pixel_x,
         pixel_y           => pixel_y,
         red_out           => win_r,
@@ -282,7 +304,7 @@ begin
     lose_painter : dibujo_derrota
     port map (
         clk               => clk_108MHz,
-        tick_cambio_frame => tick_anim,
+        --tick_cambio_frame => tick_anim,
         pixel_x           => pixel_x,
         pixel_y           => pixel_y,
         red_out           => lose_r,

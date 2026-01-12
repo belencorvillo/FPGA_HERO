@@ -99,7 +99,7 @@ begin
             acierto <= '0';         
             nota_fallada <= '0';
             nota_destruida <= "00000";
-            if reset = '1' then
+            if reset = '0' then
                 state <= MENU;
                 score <= 0;
                 lives <= 3;
@@ -146,9 +146,7 @@ begin
 
                             else -- SI no son exactamente iguales no se destruye nada
                                 nota_destruida <= "00000"; --fallo
-                                combo_cnt <= 0;
-                                multiplier <= 1;
-                                if lives > 0 then lives <= lives - 1; end if;
+                    
                             end if;
                         end if;
                         
