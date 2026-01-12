@@ -11,7 +11,7 @@ entity visual_top is
         destruccion     : in  STD_LOGIC_VECTOR(4 downto 0);       
         hitzone      : out STD_LOGIC_VECTOR(4 downto 0); 
         fallo      : out STD_LOGIC; 
-        vida          : in STD_LOGIC;
+        vida          : in INTEGER range 0 to 3;
         comienzo_audio : out STD_LOGIC;
         
         -- SALIDA VGA
@@ -58,7 +58,7 @@ architecture Behavioral of visual_top is
         );
     end component;
 
-    -- 4. MOTOR DE JUEGO (VISUAL ENGINE) - ¡EL CEREBRO!
+    -- 4. MOTOR DE JUEGO 
     component visual_engine is
         Generic ( FALL_SPEED : integer := 8; TARGET_Y : integer := 900; HIT_MARGIN : integer := 20 );
         Port ( 
@@ -77,7 +77,7 @@ architecture Behavioral of visual_top is
         );
     end component;
 
-    -- 5. RENDERIZADO JUEGO (GUITARRA)
+    -- 5. RENDERIZADO JUEGO 
     component generador_pixeles is
         Port ( 
             clk              : in  STD_LOGIC;
@@ -85,6 +85,8 @@ architecture Behavioral of visual_top is
             pixel_x          : in  INTEGER;
             pixel_y          : in  INTEGER;
             game_active      : in  STD_LOGIC;
+            num_lives        : in  INTEGER range 0 to 3;
+            btn_player       : in  STD_LOGIC_VECTOR(4 downto 0);
             draw_note_vector : in  STD_LOGIC_VECTOR(4 downto 0);
             red_out          : out STD_LOGIC_VECTOR (3 downto 0);
             green_out        : out STD_LOGIC_VECTOR (3 downto 0);
@@ -92,8 +94,32 @@ architecture Behavioral of visual_top is
         );
     end component;
 
-    -- 6. RENDERIZADO PAUSA (GIF)
+    -- 6. DIBUJOS
     component dibujo_pausa is
+        Port ( 
+            clk               : in  STD_LOGIC;
+            tick_cambio_frame : in  STD_LOGIC;
+            pixel_x           : in  INTEGER;
+            pixel_y           : in  INTEGER;
+            red_out           : out STD_LOGIC_VECTOR (3 downto 0);
+            green_out         : out STD_LOGIC_VECTOR (3 downto 0);
+            blue_out          : out STD_LOGIC_VECTOR (3 downto 0)
+        );
+    end component;
+
+    component dibujo_victoria is
+        Port ( 
+            clk               : in  STD_LOGIC;
+            tick_cambio_frame : in  STD_LOGIC;
+            pixel_x           : in  INTEGER;
+            pixel_y           : in  INTEGER;
+            red_out           : out STD_LOGIC_VECTOR (3 downto 0);
+            green_out         : out STD_LOGIC_VECTOR (3 downto 0);
+            blue_out          : out STD_LOGIC_VECTOR (3 downto 0)
+        );
+    end component;
+
+    component dibujo_derrota is
         Port ( 
             clk               : in  STD_LOGIC;
             tick_cambio_frame : in  STD_LOGIC;
@@ -221,6 +247,8 @@ begin
         video_on         => video_on,
         pixel_x          => pixel_x,
         pixel_y          => pixel_y,
+        btn_player       => destruccion,
+        num_lives        => vida,
         game_active      => '1', -- Siempre "activo" internamente, el MUX final decide si se ve
         draw_note_vector => engine_draw_vec, -- Recibe datos del ENGINE
         red_out          => game_r,
@@ -228,7 +256,7 @@ begin
         blue_out         => game_b
     );
 
-    -- 7. DIBUJO MENU (PINTOR DEL MENU)
+    -- 7. DIBUJOS
     pausa_painter : dibujo_pausa
     port map (
         clk               => clk_108MHz,
@@ -246,7 +274,7 @@ begin
         tick_cambio_frame => tick_anim,
         pixel_x           => pixel_x,
         pixel_y           => pixel_y,
-        red_out           => win_r_r,
+        red_out           => win_r,
         green_out         => win_g,
         blue_out          => win_b
     );

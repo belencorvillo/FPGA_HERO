@@ -202,6 +202,7 @@ begin
                             elsif (note_head_y >= zone_top) and (note_head_y <= zone_bot) and (destroy_note(k) = '1') then
                                 if tracks_len(k)(i) > FALL_SPEED then
                                     tracks_len(k)(i) <= tracks_len(k)(i) - FALL_SPEED;
+                                    tracks_y(k)(i) <= tracks_y(k)(i) + FALL_SPEED;
                                 else
                                     tracks_y(k)(i) <= 1200; 
                                 end if;
