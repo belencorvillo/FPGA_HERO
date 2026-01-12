@@ -52,8 +52,8 @@ entity TOP is
         -- LEDs RGB (Vidas)
         LED16_G, LED16_R, LED16_B : out STD_LOGIC;
         LED17_G, LED17_R, LED17_B : out STD_LOGIC;
-        LED :out std_logic_vector (2 downto 0)
-        
+        LED :out std_logic_vector (2 downto 0);
+        LED1 :out std_logic_vector (2 downto 0)
         );
         
 
@@ -61,6 +61,7 @@ end TOP;
 
 architecture Behavioral of TOP is
     
+    signal rst_sys : std_logic;
     -- Teclado y Decoder
     signal sig_new_code : std_logic;
     signal sig_keycode  : std_logic_vector(7 downto 0);
@@ -78,7 +79,7 @@ architecture Behavioral of TOP is
     signal aud_done     : std_logic;
     
     -- Señales que van DE FSM HACIA Video/Audio
-    signal acierto_fsm   : std_logic;
+    signal acierto_fms   : std_logic;
     signal nota_fallada_fms  : std_logic;
     signal nota_destruida_fms  : std_logic_vector(4 downto 0);
     
@@ -88,6 +89,10 @@ architecture Behavioral of TOP is
     -- Cables Display
     signal seg_vector   : std_logic_vector(6 downto 0);
 begin
+    rst_sys <= NOT CPU_RESETN;
+    LED1(0) <= sig_new_code;      -- Parpadea cada vez que llega un dato
+    LED1(1) <= sig_keycode(0);    -- Cambia rapidísimo al escribir
+    LED1(2) <= user_keys(0);      -- Se enciende si pulsas la tecla VERDE (A)
     -------------------------------------------------------------------------
     -- 1. BLOQUE DE ENTRADA (TUS MÓDULOS)
     -------------------------------------------------------------------------
@@ -99,7 +104,7 @@ begin
 
     DECODER: entity work.guitar_decoder
     port map (
-        clk => CLK, reset => CPU_RESETN,
+        clk => CLK, reset => rst_sys,
         ps2_code_new => sig_new_code, ps2_code => sig_keycode, 
         color_pulsado => user_keys, 
         btn_esc => cmd_esc, btn_1 => cmd_1, btn_2 => cmd_2
@@ -111,7 +116,7 @@ begin
     BRAIN: entity work.Game_FSM
     port map (
         clk             => CLK,
-        reset           => CPU_RESETN,
+        reset           => rst_sys,
         start_btn       => BTNU,
         
         -- Entradas de Control
@@ -133,7 +138,7 @@ begin
         -- Feedback
         nota_destruida  => nota_destruida_fms,
         nota_fallada    => nota_fallada_fms, -- Usaremos esto para sonido miss
-        nota_acierto    => acierto_fsm
+        nota_acierto    => acierto_fms
     );
 
     -------------------------------------------------------------------------
@@ -142,7 +147,7 @@ begin
     -- Pantalla 7 Segmentos
     SCORE_DISP: entity work.score_display_ctrl
     port map (
-        clk => CLK, reset => CPU_RESETN, score_in => score_data, 
+        clk => CLK, reset => rst_sys, score_in => score_data, 
         seg_anodes => AN, seg_cathodes => seg_vector
     );
     -- Desempaquetado 7-seg
@@ -152,7 +157,7 @@ begin
     -- Barra de Vida RGB
     LIVES_CTRL: entity work.life_bar_ctrl
     port map (
-        clk => CLK, reset => CPU_RESETN, lives => lives_data,
+        clk => CLK, reset => rst_sys, lives => lives_data,
         led16_r => LED16_R, led16_g => LED16_G, led16_b => LED16_B,
         led17_r => LED17_R, led17_g => LED17_G, led17_b => LED17_B
     );
@@ -164,8 +169,8 @@ begin
     AUDIO: entity work.controladora_audio
     port map (
         clk_100MHz => CLK,
-        reset      => CPU_RESETN,
-        user_hit   => nota_fallada_fms, -- '1' si el usuario está acertando (suena), '0' silencio
+        reset      => rst_sys,
+        user_hit   => acierto_fms, -- '1' si el usuario está acertando (suena), '0' silencio
         pwm_audio  => AUD_PWM,
         pwm_sd     => AUD_SD, -- apagamos sonido (shutdown)
         play_enable => empezar,  -- '1' = Reproducir, '0' = Reset/Parar
@@ -184,6 +189,7 @@ begin
          hitzone    => vid_hitzone,  -- CABLE CLAVE: FSM lee esto
          fallo => vid_miss,     -- CABLE CLAVE: FSM lee esto
          comienzo_audio => empezar,
+         vida            => lives_data,
          
          red_out => red_out, green_out => green_out, blue_out => blue_out,
          hsync => hsync, vsync => vsync

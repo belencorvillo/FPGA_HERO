@@ -99,7 +99,7 @@ begin
             acierto <= '0';         
             nota_fallada <= '0';
             nota_destruida <= "00000";
-            if reset = '0' then
+            if reset = '1' then
                 state <= MENU;
                 score <= 0;
                 lives <= 3;
@@ -172,7 +172,7 @@ begin
                         if start_btn = '1' then state <= MENU; end if; --Se congela todo y se espera reset
 
                     when GAMEOVER =>
-                        if start_btn = '1' then state <= MENU; end if; --Se congela todo y se espera reset
+                        --if start_btn = '1' then state <= MENU; end if; --Se congela todo y se espera reset
 
                     when others =>
                         state <= MENU;
