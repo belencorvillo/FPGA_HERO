@@ -53,7 +53,9 @@ entity TOP is
         LED16_G, LED16_R, LED16_B : out STD_LOGIC;
         LED17_G, LED17_R, LED17_B : out STD_LOGIC;
         LED :out std_logic_vector (2 downto 0);
-        LED1 :out std_logic_vector (2 downto 0)
+        LED1 :out std_logic_vector (4 downto 0);
+        LED_esc: out std_logic;
+        LED_pulso: out std_logic
         );
         
 
@@ -81,7 +83,7 @@ architecture Behavioral of TOP is
     -- Señales que van DE FSM HACIA Video/Audio
     signal acierto_fms   : std_logic;
     signal nota_fallada_fms  : std_logic;
-    signal nota_destruida_fms  : std_logic_vector(4 downto 0);
+    signal notas_a_destruir_fms  : std_logic_vector(4 downto 0);
     
     --De video a audio
     signal empezar :std_logic;
@@ -90,9 +92,9 @@ architecture Behavioral of TOP is
     signal seg_vector   : std_logic_vector(6 downto 0);
 begin
     rst_sys <= NOT CPU_RESETN;
-    LED1(0) <= sig_new_code;      -- Parpadea cada vez que llega un dato
-    LED1(1) <= sig_keycode(0);    -- Cambia rapidísimo al escribir
-    LED1(2) <= user_keys(0);      -- Se enciende si pulsas la tecla VERDE (A)
+    LED1 <= user_keys;      -- Se enciende si pulsas las teclas de color
+    LED_esc <= cmd_esc;
+    LED_pulso <= vid_miss;
     -------------------------------------------------------------------------
     -- 1. BLOQUE DE ENTRADA (TUS MÓDULOS)
     -------------------------------------------------------------------------
@@ -106,8 +108,8 @@ begin
     port map (
         clk => CLK, reset => rst_sys,
         ps2_code_new => sig_new_code, ps2_code => sig_keycode, 
-        color_pulsado => user_keys, 
-        btn_esc => cmd_esc, btn_1 => cmd_1, btn_2 => cmd_2
+        color_pulse => user_keys, 
+       esc_pulse => cmd_esc, btn1_pulse => cmd_1, btn2_pulse => cmd_2
     );
 
     -------------------------------------------------------------------------
@@ -136,7 +138,7 @@ begin
         vida            => lives_data,
         
         -- Feedback
-        nota_destruida  => nota_destruida_fms,
+        notas_a_destruir  => notas_a_destruir_fms,
         nota_fallada    => nota_fallada_fms, -- Usaremos esto para sonido miss
         nota_acierto    => acierto_fms
     );
@@ -185,7 +187,7 @@ begin
          reset           => CPU_RESETN,
          
          sw_mode   => game_state,
-         destruccion  => nota_destruida_fms,  -- Para la explosión visual
+         destruccion  => user_keys,  -- Para la explosión visual
          hitzone    => vid_hitzone,  -- CABLE CLAVE: FSM lee esto
          fallo => vid_miss,     -- CABLE CLAVE: FSM lee esto
          comienzo_audio => empezar,

@@ -6,7 +6,7 @@ use work.music_pkg.ALL;
 
 entity visual_engine is
     Generic (
-        FALL_SPEED  : integer := 4;    -- Velocidad rápida para pantalla 1024p
+        FALL_SPEED  : integer := 3;    -- Velocidad rápida para pantalla 1024p
         TARGET_Y    : integer := 900;  -- Posición de la línea de meta
         HIT_MARGIN  : integer := 20    -- Margen estricto (+/- 20px = Ventana de ~80ms)
     );
@@ -41,7 +41,7 @@ architecture Behavioral of visual_engine is
     -- =========================================================================
     -- Calculamos cuánto tarda una nota en caer desde Y=0 hasta TARGET_Y
     constant FRAMES_TO_FALL : integer := TARGET_Y / FALL_SPEED;
-    constant MS_PER_FRAME   : integer := 16; -- 1000ms / 60Hz aprox
+    constant MS_PER_FRAME   : integer := 20; -- 1000ms / 60Hz aprox
     constant AUDIO_DELAY_MS : integer := FRAMES_TO_FALL * MS_PER_FRAME;
 
     -- =========================================================================
@@ -50,11 +50,11 @@ architecture Behavioral of visual_engine is
     -- tracks_y: Guarda la posición de la CABEZA de la nota (la parte de abajo visualmente).
     -- tracks_len: Guarda la longitud vertical de la nota.
     -- Estado 1200 = Nota inactiva / Fuera de pantalla.
-    type lane_y_t is array (0 to 3) of integer range -1000 to 1200;  -- Definimos un array para un solo carril (Max 4 notas simultáneas)  
-    type track_y_sys_t is array (0 to 4) of lane_y_t; -- Definimos la pista completa: 5 carriles (0 a 4)
+    type lane_y_t is array (3 downto 0) of integer range -1000 to 1200;  -- Definimos un array para un solo carril (Max 4 notas simultáneas)  
+    type track_y_sys_t is array (4 downto 0) of lane_y_t; -- Definimos la pista completa: 5 carriles (0 a 4)
     signal tracks_y : track_y_sys_t := (others => (others => 1200)); -- Inicializamos todas las notas en 1200 (Fuera de pantalla)
-    type lane_len_t is array (0 to 3) of integer range 0 to 1000;
-    type track_len_sys_t is array (0 to 4) of lane_len_t;
+    type lane_len_t is array (3 downto 0) of integer range 0 to 1000;
+    type track_len_sys_t is array (4 downto 0) of lane_len_t;
     signal tracks_len : track_len_sys_t := (others => (others => 40)); -- Tamaño predeterminado de 40 pixeles
       
     -- =========================================================================

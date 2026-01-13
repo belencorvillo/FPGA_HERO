@@ -11,10 +11,8 @@ ENTITY ps2_keyboard IS
     ps2_clk      : IN  STD_LOGIC;                     --clock signal from PS/2 keyboard
     ps2_data     : IN  STD_LOGIC;                     --data signal from PS/2 keyboard
     ps2_code_new : OUT STD_LOGIC;                     --flag that new PS/2 code is available on ps2_code bus
-    ps2_code     : OUT STD_LOGIC_VECTOR(7 DOWNTO 0); --code received from PS/2
-    
-    --PRUEBAS
-    LED : OUT std_logic_vector (0 downto 0));
+    ps2_code     : OUT STD_LOGIC_VECTOR(7 DOWNTO 0) --code received from PS/2
+ );
 END ps2_keyboard;
 
 ARCHITECTURE Behavioral OF ps2_keyboard IS
@@ -27,9 +25,6 @@ ARCHITECTURE Behavioral OF ps2_keyboard IS
   SIGNAL error        : STD_LOGIC;                          --validate parity, start, and stop bits
   SIGNAL count_idle   : INTEGER RANGE 0 TO clk_freq/18_000; --counter to determine PS/2 is idle
   
-  --PARA PRUEBAS
-  signal break_received : std_logic := '0'; --viene F0
-  signal led_state      : std_logic_vector (0 downto 0) := (others => '0'); 
 BEGIN
       
   --synchronizer flip-flops
@@ -74,42 +69,13 @@ BEGIN
             end if;
             
             -- Salida de resultados
---            if (count_idle = clk_freq/18_000) and (error = '0') then
---                ps2_code_new <= '1';
---                ps2_code     <= ps2_word(8 downto 1);
---            else
---                ps2_code_new <= '0';
---            end if;
-            --SALIDA RESULTADOS PRUEBA
-            if (count_idle = (clk_freq/18_000)-1) and (error = '0') then
+            if (count_idle = (clk_freq/18_000) - 1) and (error = '0') then
                 ps2_code_new <= '1';
                 ps2_code     <= ps2_word(8 downto 1);
-                
-                -- Código F0 recibido (significa que se va a soltar una tecla)
-                if ps2_word(8 downto 1) = x"F0" then
-                    break_received <= '1';
-                
-                -- Código 1C recibido (Tecla A)
-                elsif ps2_word(8 downto 1) = x"1C" then
-                    if break_received = '1' then
-                        -- Si antes hubo un F0, es que estamos SOLTANDO la A
-                        led_state(0) <= '0';
-                        break_received <= '0'; -- Limpiamos la bandera
-                    else
-                        -- Si NO hubo F0, es que estamos PULSANDO la A
-                        led_state(0) <= '1';
-                    end if;
-                    
-                else
-                    -- Si llega cualquier otra tecla que no sea A ni F0
-                    break_received <= '0'; -- Reset por seguridad
-                end if;
-                ---------------------------------------------------------
-                
             else
                 ps2_code_new <= '0';
             end if;
-            
+                       
         end if;
     end process;
 
@@ -117,6 +83,5 @@ BEGIN
     error <= NOT (NOT ps2_word(0) AND ps2_word(10) AND (ps2_word(9) XOR ps2_word(8) XOR
              ps2_word(7) XOR ps2_word(6) XOR ps2_word(5) XOR ps2_word(4) XOR ps2_word(3) XOR 
              ps2_word(2) XOR ps2_word(1)));
-    LED <= led_state;
 
 end Behavioral;
