@@ -83,7 +83,7 @@ architecture Behavioral of TOP is
     -- Señales que van DE FSM HACIA Video/Audio
     signal acierto_fms   : std_logic;
     signal nota_fallada_fms  : std_logic;
-    signal notas_a_destruir_fms  : std_logic_vector(4 downto 0);
+    signal notas_a_destruir_fsm  : std_logic_vector(4 downto 0);
     
     --De video a audio
     signal empezar :std_logic;
@@ -138,7 +138,7 @@ begin
         vida            => lives_data,
         
         -- Feedback
-        notas_a_destruir  => notas_a_destruir_fms,
+        notas_a_destruir  => notas_a_destruir_fsm,
         nota_fallada    => nota_fallada_fms, -- Usaremos esto para sonido miss
         nota_acierto    => acierto_fms
     );
@@ -187,7 +187,7 @@ begin
          reset           => CPU_RESETN,
          
          sw_mode   => game_state,
-         destruccion  => nota_destruida_fms,  -- Para la explosión visual
+         destruccion  => notas_a_destruir_fsm,  -- Para la explosión visual
          botones => user_keys,
          hitzone    => vid_hitzone,  -- CABLE CLAVE: FSM lee esto
          fallo => vid_miss,     -- CABLE CLAVE: FSM lee esto
