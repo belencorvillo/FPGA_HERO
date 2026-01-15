@@ -8,7 +8,8 @@ entity visual_top is
         reset         : in  STD_LOGIC; -- BOTÓN ROJO (CPU_RESETN) -> Activo a '0'
        
         sw_mode       : in  STD_LOGIC_VECTOR(2 downto 0); 
-        destruccion     : in  STD_LOGIC_VECTOR(4 downto 0);       
+        destruccion     : in  STD_LOGIC_VECTOR(4 downto 0);    
+        botones     : in  STD_LOGIC_VECTOR(4 downto 0);      
         hitzone      : out STD_LOGIC_VECTOR(4 downto 0); 
         fallo      : out STD_LOGIC; 
         vida          : in INTEGER range 0 to 3;
@@ -245,7 +246,7 @@ begin
         video_on         => video_on,
         pixel_x          => pixel_x,
         pixel_y          => pixel_y,
-        btn_player       => destruccion,
+        btn_player       => botones,
         num_lives        => vida,
         game_active      => '1', -- Siempre "activo" internamente, el MUX final decide si se ve
         draw_note_vector => engine_draw_vec, -- Recibe datos del ENGINE

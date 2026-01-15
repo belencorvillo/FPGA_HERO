@@ -187,7 +187,8 @@ begin
          reset           => CPU_RESETN,
          
          sw_mode   => game_state,
-         destruccion  => user_keys,  -- Para la explosión visual
+         destruccion  => nota_destruida_fms,  -- Para la explosión visual
+         botones => user_keys,
          hitzone    => vid_hitzone,  -- CABLE CLAVE: FSM lee esto
          fallo => vid_miss,     -- CABLE CLAVE: FSM lee esto
          comienzo_audio => empezar,
