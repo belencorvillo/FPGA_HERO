@@ -206,6 +206,7 @@ begin
                     r := "0100"; g := "0100"; b := "0100"; 
                     if pixel_y > 935 and pixel_y < 945 then r := "1000"; g := "1000"; b := "1000"; end if;
                 end if;
+                
 
             end if; 
         end if; 

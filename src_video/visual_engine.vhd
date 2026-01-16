@@ -30,7 +30,8 @@ entity visual_engine is
         life_lost_pulse     : out STD_LOGIC;                  -- Pulso si se escapa una nota (Para MDE - Máquina de Estados)
         note_in_zone        : out STD_LOGIC_VECTOR(4 downto 0); -- Para ver si esta en hit zone la cabeza de la nota (Para MDE)
         draw_note_vector    : out STD_LOGIC_VECTOR(4 downto 0); -- Para Pixel Generator
-        audio_start_trigger : out STD_LOGIC                   -- Para sincronizar audio
+        audio_start_trigger : out STD_LOGIC;                  -- Para sincronizar audio
+        debug_led           : out STD_LOGIC
     );
 end visual_engine;
 
@@ -50,10 +51,10 @@ architecture Behavioral of visual_engine is
     -- tracks_y: Guarda la posición de la CABEZA de la nota (la parte de abajo visualmente).
     -- tracks_len: Guarda la longitud vertical de la nota.
     -- Estado 1200 = Nota inactiva / Fuera de pantalla.
-    type lane_y_t is array (3 downto 0) of integer range -1000 to 1200;  -- Definimos un array para un solo carril (Max 4 notas simultáneas)  
+    type lane_y_t is array (5 downto 0) of integer range -1000 to 1300;  -- Definimos un array para un solo carril (Max 4 notas simultáneas)  
     type track_y_sys_t is array (4 downto 0) of lane_y_t; -- Definimos la pista completa: 5 carriles (0 a 4)
     signal tracks_y : track_y_sys_t := (others => (others => 1200)); -- Inicializamos todas las notas en 1200 (Fuera de pantalla)
-    type lane_len_t is array (3 downto 0) of integer range 0 to 1000;
+    type lane_len_t is array (5 downto 0) of integer range 0 to 600;
     type track_len_sys_t is array (4 downto 0) of lane_len_t;
     signal tracks_len : track_len_sys_t := (others => (others => 40)); -- Tamaño predeterminado de 40 pixeles
       
@@ -72,9 +73,14 @@ architecture Behavioral of visual_engine is
     signal spawn_vector     : std_logic_vector(4 downto 0) := (others => '0');
     signal next_note_len    : integer range 0 to 1000 := 40;
     signal vsync_prev : std_logic := '0';
+    signal note_in_zone_internal : std_logic_vector(4 downto 0) := (others => '0');
     
 begin
 
+    note_in_zone <= note_in_zone_internal;
+
+    -- El LED se encenderá si CUALQUIER nota (OR reduce) está en zona de hit
+    debug_led <= '1' when (unsigned(note_in_zone_internal) > 0) else '0';
     -- =========================================================================
     -- PROCESO 1: EL DIRECTOR (Spawner)
     -- Lee el music_pkg y decide cuándo y de qué tamaño nacen las notas.
@@ -105,10 +111,10 @@ begin
             -- 2. Cálculo de la Longitud Visual
                 current_dur := SEVEN_NATION_SONG(song_idx).dur;
                 -- Conversión: Duración / 2 (Aprox 0.48 px/ms para Speed 8)
-                calc_len := current_dur / 2;
+                calc_len := current_dur / 4;
                 -- Clamping (Límites de seguridad visual)
-                if calc_len < 20 then calc_len := 20; end if;       -- Mínimo visible
-                if calc_len > 1000 then calc_len := 1000; end if;   -- Máximo pantalla
+                if calc_len < 10 then calc_len := 10; end if;       -- Mínimo visible
+                if calc_len > 600 then calc_len := 600; end if;   -- Máximo pantalla
                 
                 next_note_len <= calc_len;
           
@@ -134,45 +140,56 @@ begin
     -- Salida para dar comienzo al módulo de audio
     audio_start_trigger <= audio_go;
 
-    -- =========================================================================
-    -- PROCESO 2: FÍSICA (NACIMIENTO, MOVIMIENTO Y DESTRUCCIÓN)
+ -- =========================================================================
+    -- PROCESO 2: FÍSICA ROBUSTA (GRAVEDAD CONSTANTE)
     -- =========================================================================
     process(clk, reset)
-        variable note_head_y : integer; -- Cabeza de la nota
-        variable zone_top    : integer; -- Márgenes de la meta
-        variable zone_bot    : integer; 
-        variable any_miss    : std_logic; -- Ha habido fallo -> para MDE
-        variable lane_active : std_logic; -- Variable para saber si el carril K tiene nota en zona
-        variable frame_tick  : boolean; -- Variable auxiliar
+        variable note_head_y : integer;
+        variable note_tail_y : integer;
+        variable zone_top    : integer;
+        variable zone_bot    : integer;
+        variable any_miss    : std_logic;
+        variable lane_active : std_logic;
+        variable frame_tick  : boolean;
+        
+        -- Variables temporales para calcular el siguiente estado
+        variable next_y      : integer;
+        variable next_len    : integer;
+        
+        -- Limite de destruccion
+        constant SCREEN_BOTTOM : integer := 1020;
     begin
         if reset = '1' then
-            tracks_y         <= (others => (others => 1200));
-            tracks_len       <= (others => (others => 40));
-            life_lost_pulse  <= '0';
-            note_in_zone <= (others => '0'); -- Reset salida
+            tracks_y        <= (others => (others => 1200));
+            tracks_len      <= (others => (others => 40));
+            life_lost_pulse <= '0';
+            note_in_zone_internal <= (others => '0');
             vsync_prev      <= '0';
             
         elsif rising_edge(clk) then
-        -- DETECTOR DE FLANCO DE VSYNC (Para contar 1 frame exacto)
+            
+            -- Detector de flanco VSYNC (1 frame)
             frame_tick := false;
-            if (vsync = '1' and vsync_prev = '0') then -- Flanco de subida
+            if (vsync = '1' and vsync_prev = '0') then 
                 frame_tick := true;
             end if;
-            vsync_prev <= vsync; -- Guardamos estado anterior
-        
+            vsync_prev <= vsync;
+
             life_lost_pulse <= '0';
             any_miss        := '0';
+            
+            -- Zona de Hit (Meta +/- Margen)
             zone_top := TARGET_Y - HIT_MARGIN;
             zone_bot := TARGET_Y + HIT_MARGIN;
             
-           if enable = '1' then  
-            -- 1) SPAWN: Si el proceso 1 pidió nota nueva, buscamos hueco
-                 for k in 0 to 4 loop
+            if enable = '1' then
+                
+                -- A) SPAWN (Nacimiento de notas)
+                for k in 0 to 4 loop
                     if spawn_vector(k) = '1' then
-                        for i in 0 to 3 loop
-                            -- Solo creamos si está libre (fuera de pantalla)
+                        for i in 0 to 5 loop
                             if tracks_y(k)(i) >= 1200 then 
-                                tracks_y(k)(i)   <= 0; -- ¡Nace arriba!
+                                tracks_y(k)(i)   <= 0; 
                                 tracks_len(k)(i) <= next_note_len; 
                                 exit; 
                             end if;
@@ -180,48 +197,82 @@ begin
                     end if;
                 end loop;
 
-            -- 2) MOVIMIENTO
+                -- B) MOVIMIENTO Y FÍSICA
                 if frame_tick then 
                     for k in 0 to 4 loop
-                        lane_active := '0'; -- Reset por carril
-                    for i in 0 to 3 loop
-                        if tracks_y(k)(i) < 1100 then 
-                            note_head_y := tracks_y(k)(i);
+                        lane_active := '0'; 
+                        
+                        for i in 0 to 5 loop
+                            -- Solo procesamos notas activas (Y < 1200)
+                            if tracks_y(k)(i) < 1200 then 
+  
+                                note_head_y := tracks_y(k)(i);
+                                next_len    := tracks_len(k)(i);
+                                
+                                -- IMPORTANTE: Por defecto aplicamos gravedad,
+                                -- PERO si entramos en un caso especial (Hit/Fondo), la sobreescribimos.
+                                next_y      := note_head_y + FALL_SPEED;
 
-                            -- Comprobamos si la nota está en zona de la meta para avisar a MDE
-                            if (note_head_y >= zone_top) and (note_head_y <= zone_bot) then
-                                lane_active := '1'; 
-                            end if;
-                            
-                            -- Lógica de Fallo
-                            if note_head_y > zone_bot then
-                                any_miss       := '1';
-                                tracks_y(k)(i) <= 1200; -- Cambiar -> Dibujar algo cuando se falla
-                            
-                            -- Lógica de Acierto 
-                            elsif (note_head_y >= zone_top) and (note_head_y <= zone_bot) and (destroy_note(k) = '1') then
-                                if tracks_len(k)(i) > FALL_SPEED then
-                                    tracks_len(k)(i) <= tracks_len(k)(i) - FALL_SPEED;
-                                    tracks_y(k)(i) <= tracks_y(k)(i) + FALL_SPEED;
-                                else
-                                    tracks_y(k)(i) <= 1200; 
+                                -- 1. CHECK DE ZONA (LEDs)
+                                if (note_head_y >= zone_top) and (note_head_y <= zone_bot) then
+                                    lane_active := '1';
                                 end if;
-                            else
-                                tracks_y(k)(i) <= tracks_y(k)(i) + FALL_SPEED;
+
+                                -- 2. LÓGICA DE JUEGO (Prioridad: Acierto > Fondo > Caída)
+                                
+                                -- CASO A: ACIERTO / HOLD (Jugador mantiene en zona)
+                                if (note_head_y >= zone_top) and (note_head_y <= zone_bot) and (destroy_note(k) = '1') then
+                                    
+                                    -- ¡CONGELAMOS LA CABEZA!
+                                    next_y := note_head_y; -- Anulamos la gravedad, se queda quieta
+                                    
+                                    if next_len > FALL_SPEED then
+                                        next_len := next_len - FALL_SPEED; -- Se hace pequeña
+                                    else
+                                        next_y := 1200; -- Destruida
+                                    end if;
+
+                                -- CASO B: TRITURADORA DEL FONDO (Fallo visual)
+                                -- Si llega al fondo (1020) y no ha sido destruida, se aplasta allí.
+                                elsif note_head_y >= SCREEN_BOTTOM then
+                                    
+                                    -- ¡CONGELAMOS EN EL FONDO!
+                                    next_y := SCREEN_BOTTOM; 
+                                    
+                                    if next_len > FALL_SPEED then
+                                        next_len := next_len - FALL_SPEED; -- Se consume contra el suelo
+                                    else
+                                        next_y := 1200; -- Adiós
+                                    end if;
+
+                                -- CASO C: CAÍDA LIBRE (Comprobamos si perdimos vida)
+                                else
+                                    -- Aquí next_y ya tiene la gravedad aplicada (+ FALL_SPEED)
+                                    
+                                    -- DETECCIÓN DE VIDA PERDIDA
+                                    -- Si la cabeza acaba de cruzar la zona de meta sin ser pulsada
+                                    if (note_head_y <= zone_bot) and (next_y > zone_bot) then
+                                        any_miss := '1';
+                                    end if;
+
+                                    -- LIMPIEZA FINAL
+                                    note_tail_y := next_y - next_len;
+                                    if note_tail_y > 1024 then next_y := 1200; end if;
+                                end if;
+
+                                -- 3. GUARDAR ESTADO
+                                tracks_y(k)(i)   <= next_y;
+                                tracks_len(k)(i) <= next_len;
                             end if;
-                        end if;
-                    end loop; -- Fin loop de notas por carril
+                        end loop;
+                        note_in_zone_internal(k) <= lane_active;
+                    end loop;
                     
-                    -- Asignamos el resultado acumulado del carril a la salida
-                    note_in_zone(k) <= lane_active;
-                end loop; -- Fin loop de carriles                
-                if any_miss = '1' then life_lost_pulse <= '1'; 
+                    if any_miss = '1' then life_lost_pulse <= '1'; end if;
                 end if;
-            end if;
             end if;
         end if;
     end process;
-
     -- =========================================================================
     -- PROCESO 3: RENDERIZADO (Solo dibujado)
     -- =========================================================================
@@ -232,7 +283,7 @@ begin
         -- Bucle para calcular las salidas de los 5 canales
         for k in 0 to 4 loop            
             draw_detected := '0';
-            for i in 0 to 3 loop
+            for i in 0 to 5 loop
                 note_head := tracks_y(k)(i);
                 note_tail := tracks_y(k)(i) - tracks_len(k)(i);
 

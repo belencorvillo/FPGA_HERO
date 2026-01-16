@@ -42,6 +42,7 @@ entity TOP is
         -- SALIDA AUDIO
         AUD_PWM      : out STD_LOGIC; -- Salida de Audio Mono
         AUD_SD       : out STD_LOGIC; -- Shutdown (dejar a '1')
+        SW           : in STD_LOGIC;
 
         -- 5. PERIFÉRICOS DE PLACA 
         -- Display 7-Segmentos para puntuación
@@ -55,7 +56,9 @@ entity TOP is
         LED :out std_logic_vector (2 downto 0);
         LED1 :out std_logic_vector (4 downto 0);
         LED_esc: out std_logic;
-        LED_pulso: out std_logic
+        LED_pulso: out std_logic;
+        debug_led : out std_logic
+        
         );
         
 
@@ -173,6 +176,7 @@ begin
         clk_100MHz => CLK,
         reset      => rst_sys,
         user_hit   => acierto_fms, -- '1' si el usuario está acertando (suena), '0' silencio
+        modo_demo  => SW,
         pwm_audio  => AUD_PWM,
         pwm_sd     => AUD_SD, -- apagamos sonido (shutdown)
         play_enable => empezar,  -- '1' = Reproducir, '0' = Reset/Parar
@@ -195,7 +199,8 @@ begin
          vida            => lives_data,
          
          red_out => red_out, green_out => green_out, blue_out => blue_out,
-         hsync => hsync, vsync => vsync
+         hsync => hsync, vsync => vsync,
+         debug_led => debug_led
     );
     
     LED <= game_state;

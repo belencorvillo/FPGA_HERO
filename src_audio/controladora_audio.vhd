@@ -9,6 +9,7 @@ entity controladora_audio is
         clk_100MHz : in STD_LOGIC;
         reset      : in STD_LOGIC;
         user_hit   : in STD_LOGIC; -- '1' si el usuario está acertando (suena), '0' silencio
+        modo_demo  : in std_logic;
         pwm_audio  : out STD_LOGIC;
         pwm_sd     : out STD_LOGIC; -- apagamos sonido (shutdown)
         current_note_index : out integer range 0 to 499;
@@ -190,6 +191,6 @@ begin
     -- SALIDA FÍSICA: Solo sacamos sonido si hay frecuencia Y el usuario acierta
     -- MEZCLADOR: Puerta OR para juntar las dos ondas (Efecto Distorsión)
     pwm_audio <= pwm_err when (is_error_active = '1') else  -- Prioridad 1: Error
-                 (pwm_toggle1 or pwm_toggle2) when (user_hit = '1' and current_state = ST_JUGANDO) else -- Prioridad 2: Música
+                 (pwm_toggle1 or pwm_toggle2) when (current_state = ST_JUGANDO and (user_hit = '1' or modo_demo = '1')) else -- Prioridad 2: Música
                  '0'; -- Silencio
 end Behavioral;

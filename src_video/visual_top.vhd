@@ -20,7 +20,8 @@ entity visual_top is
         green_out     : out STD_LOGIC_VECTOR (3 downto 0);
         blue_out      : out STD_LOGIC_VECTOR (3 downto 0);
         hsync         : out STD_LOGIC;
-        vsync         : out STD_LOGIC
+        vsync         : out STD_LOGIC;
+        debug_led : out STD_LOGIC
     );
 end visual_top;
 
@@ -74,7 +75,8 @@ architecture Behavioral of visual_top is
             life_lost_pulse     : out STD_LOGIC;
             note_in_zone        : out STD_LOGIC_VECTOR(4 downto 0);
             draw_note_vector    : out STD_LOGIC_VECTOR(4 downto 0);
-            audio_start_trigger : out STD_LOGIC
+            audio_start_trigger : out STD_LOGIC;
+            debug_led : out STD_LOGIC
         );
     end component;
 
@@ -236,7 +238,8 @@ begin
         life_lost_pulse     => fallo,  -- LED de fallo (LED 15)
         note_in_zone        => hitzone,  -- LEDs de zona (LED 0-4)
         draw_note_vector    => engine_draw_vec, -- Esto le dice al pintor qué dibujar
-        audio_start_trigger => comienzo_audio
+        audio_start_trigger => comienzo_audio,
+        debug_led => debug_led
     );
 
     -- 6. GENERADOR PIXELES (PINTOR DEL JUEGO)
