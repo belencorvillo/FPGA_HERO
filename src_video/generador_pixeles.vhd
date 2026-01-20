@@ -86,23 +86,33 @@ begin
             -- =================================================================
             -- 2. CORAZONES ZELDA (HUD) - ARRIBA A LA DERECHA
             -- =================================================================
-            -- Zona: X[1100-1220], Y[30-60]
-            if (pixel_y >= 30 and pixel_y < 50) and (pixel_x >= 1100 and pixel_x < 1220) then
+            -- Zona más grande: X[1050-1250], Y[30-80] (50px de alto)
+            if (pixel_y >= 30 and pixel_y < 80) and (pixel_x >= 1050 and pixel_x < 1250) then -- Calculamos cuál de los 3 corazones es (0, 1 o 2)
+                heart_idx := (pixel_x - 1050) / 60;
+                hx := (((pixel_x - 1050) mod 60) / 2) - 5; 
+                hy := (pixel_y - 30) / 2; 
                 
-                -- Calculamos cuál de los 3 corazones es (0, 1 o 2)
-                heart_idx := (pixel_x - 1100) / 40;
-                hx := (pixel_x - 1100) mod 40; -- Coordenada local X
-                hy := pixel_y - 30;            -- Coordenada local Y
-                hx := hx - 10;                 -- Centrado                
                 draw_heart := false;
                 
                 -- SI TENEMOS ESA VIDA, DIBUJAMOS EL CORAZÓN
                 if (hx >= 0 and hx <= 18) and (heart_idx < num_lives) then
-                    if (hy < 6 and (hx/6 /= 1) and (hx mod 6 > 0) and (hx mod 6 < 5)) or 
-                       (hy >= 6 and hy < 10) or
-                       (hy >= 10 and (hx >= (hy-10) and hx <= (18-(hy-10)))) then
-                       draw_heart := true;
+                    
+                    -- SECCIÓN 1: LOS LÓBULOS SUPERIORES
+                    if hy = 0 then
+                         if (hx >= 2 and hx <= 7) or (hx >= 11 and hx <= 16) then draw_heart := true; end if;
+                    
+                    elsif hy = 1 then
+                         if (hx >= 1 and hx <= 17) and (hx /= 9) then draw_heart := true; end if;
+
+                    -- SECCIÓN 2: EL CUERPO CENTRAL
+                    elsif hy >= 2 and hy <= 5 then
+                         if hx >= 0 and hx <= 18 then draw_heart := true; end if;
+
+                    -- SECCIÓN 3: LA PUNTA INFERIOR
+                    elsif hy >= 6 then
+                         if (hx >= (hy - 6)) and (hx <= (24 - hy)) then draw_heart := true; end if;
                     end if;
+                    
                 end if;
 
                 if draw_heart then
@@ -170,7 +180,7 @@ begin
                         end if;
                     else
                         -- >>> CARRIL VACÍO + ANILLOS REACTIVOS <<<
-                        if is_string then r := "1000"; g := "1000"; b := "1000"; end if;
+                       if is_string then r := "1000"; g := "1000"; b := "1000"; end if;
                         
                         -- ZONA DE HIT (ANILLOS)
                         if pixel_y > 880 and pixel_y < 920 then

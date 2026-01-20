@@ -51,12 +51,14 @@ architecture Behavioral of visual_engine is
     -- tracks_y: Guarda la posición de la CABEZA de la nota (la parte de abajo visualmente).
     -- tracks_len: Guarda la longitud vertical de la nota.
     -- Estado 1200 = Nota inactiva / Fuera de pantalla.
-    type lane_y_t is array (5 downto 0) of integer range -1000 to 1300;  -- Definimos un array para un solo carril (Max 4 notas simultáneas)  
+    type lane_y_t is array (5 downto 0) of integer range -1000 to 2000;  -- Definimos un array para un solo carril (Max 4 notas simultáneas)  
     type track_y_sys_t is array (4 downto 0) of lane_y_t; -- Definimos la pista completa: 5 carriles (0 a 4)
-    signal tracks_y : track_y_sys_t := (others => (others => 1200)); -- Inicializamos todas las notas en 1200 (Fuera de pantalla)
+    constant LIMBO_Y : integer := 1800;
+    signal tracks_y : track_y_sys_t := (others => (others => LIMBO_Y)); -- Inicializamos todas las notas en 1200 (Fuera de pantalla)
     type lane_len_t is array (5 downto 0) of integer range 0 to 600;
     type track_len_sys_t is array (4 downto 0) of lane_len_t;
     signal tracks_len : track_len_sys_t := (others => (others => 40)); -- Tamaño predeterminado de 40 pixeles
+    
       
     -- =========================================================================
     -- 3. LECTURA DE LA CANCIÓN
@@ -141,7 +143,7 @@ begin
     audio_start_trigger <= audio_go;
 
  -- =========================================================================
-    -- PROCESO 2: FÍSICA ROBUSTA (GRAVEDAD CONSTANTE)
+    -- PROCESO 2: FÍSICA 
     -- =========================================================================
     process(clk, reset)
         variable note_head_y : integer;
@@ -160,7 +162,7 @@ begin
         constant SCREEN_BOTTOM : integer := 1020;
     begin
         if reset = '1' then
-            tracks_y        <= (others => (others => 1200));
+            tracks_y        <= (others => (others => LIMBO_Y));
             tracks_len      <= (others => (others => 40));
             life_lost_pulse <= '0';
             note_in_zone_internal <= (others => '0');
@@ -188,7 +190,7 @@ begin
                 for k in 0 to 4 loop
                     if spawn_vector(k) = '1' then
                         for i in 0 to 5 loop
-                            if tracks_y(k)(i) >= 1200 then 
+                            if tracks_y(k)(i) >= LIMBO_Y then 
                                 tracks_y(k)(i)   <= 0; 
                                 tracks_len(k)(i) <= next_note_len; 
                                 exit; 
@@ -204,7 +206,7 @@ begin
                         
                         for i in 0 to 5 loop
                             -- Solo procesamos notas activas (Y < 1200)
-                            if tracks_y(k)(i) < 1200 then 
+                            if tracks_y(k)(i) < LIMBO_Y then 
   
                                 note_head_y := tracks_y(k)(i);
                                 next_len    := tracks_len(k)(i);
@@ -222,14 +224,16 @@ begin
                                 
                                 -- CASO A: ACIERTO / HOLD (Jugador mantiene en zona)
                                 if (note_head_y >= zone_top) and (note_head_y <= zone_bot) and (destroy_note(k) = '1') then
-                                    
+                                    -- ¡AL LIMBO LEJANO! (1800)
+--                                    next_y := LIMBO_Y; 
+--                                    next_len := 0;
                                     -- ¡CONGELAMOS LA CABEZA!
-                                    next_y := note_head_y; -- Anulamos la gravedad, se queda quieta
-                                    
+                                    next_y := note_head_y; -- Anulamos la gravedad, se queda quieta                            
                                     if next_len > FALL_SPEED then
                                         next_len := next_len - FALL_SPEED; -- Se hace pequeña
                                     else
-                                        next_y := 1200; -- Destruida
+                                        next_y := LIMBO_Y; 
+                                        next_len := 0;
                                     end if;
 
                                 -- CASO B: TRITURADORA DEL FONDO (Fallo visual)
@@ -237,12 +241,11 @@ begin
                                 elsif note_head_y >= SCREEN_BOTTOM then
                                     
                                     -- ¡CONGELAMOS EN EL FONDO!
-                                    next_y := SCREEN_BOTTOM; 
-                                    
+                                    next_y := SCREEN_BOTTOM;                                     
                                     if next_len > FALL_SPEED then
                                         next_len := next_len - FALL_SPEED; -- Se consume contra el suelo
                                     else
-                                        next_y := 1200; -- Adiós
+                                        next_y := LIMBO_Y; -- Adiós
                                     end if;
 
                                 -- CASO C: CAÍDA LIBRE (Comprobamos si perdimos vida)
@@ -257,7 +260,7 @@ begin
 
                                     -- LIMPIEZA FINAL
                                     note_tail_y := next_y - next_len;
-                                    if note_tail_y > 1024 then next_y := 1200; end if;
+                                    if note_tail_y > 1024 then next_y := LIMBO_Y; end if;
                                 end if;
 
                                 -- 3. GUARDAR ESTADO

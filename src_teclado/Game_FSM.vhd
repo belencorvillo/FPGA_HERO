@@ -56,7 +56,7 @@ architecture Behavioral of Game_FSM is
     signal aux_reset    : std_logic := '0';
 
     -- Registros de Juego
-    signal score        : integer := 0;
+    signal score        : unsigned (puntuacion'range) := (others=>'0');
     signal lives        : integer range 0 to 3 := 3;
     signal combo_cnt    : integer range 0 to 20 := 0; -- Contador para el combo
     signal multiplier   : integer range 1 to 2 := 1;  -- x1 o x2
@@ -72,6 +72,9 @@ architecture Behavioral of Game_FSM is
     signal color_hit    : std_logic_vector(4 downto 0);
     signal any_new_press: std_logic; -- Para saber si hay que comprobar
     signal esc_hit, btn1_hit, btn2_hit : std_logic;
+    
+    -- Señal interna para notas a destruir
+    signal notas_destroy_int : std_logic_vector(4 downto 0);
     
 begin
 
@@ -91,18 +94,17 @@ begin
     btn1_hit  <= btn_1 and (not btn1_prev);
     btn2_hit  <= btn_2 and (not btn2_prev);
     
-    -- Detectamos si se ha pulsado ALGUNA tecla nueva de color
-    any_new_press <= '1' when (color_hit /= "00000") else '0';
+    notas_destroy_int <= (color_pulsado and nota_en_hitzone) when state = JUGANDO else "00000";
+    notas_a_destruir  <= notas_destroy_int;
     
     process(clk)
     begin
         if rising_edge(clk) then
             nota_acierto <= '0';         
             nota_fallada <= '0';
-            notas_a_destruir <= "00000";
             if reset = '1' or aux_reset = '1' then
                 state <= MENU;
-                score <= 0;
+                score <= (others=>'0');
                 lives <= 3;
                 combo_cnt <= 0;
                 multiplier <= 1;
@@ -112,7 +114,7 @@ begin
                 case state is
 
                     when MENU =>
-                        score <= 0;
+                        score <= (others=>'0');
                         lives <= 3;
                         combo_cnt <= 0;
                         if start_btn = '1' then
@@ -135,28 +137,15 @@ begin
                             multiplier <= 1;
                             if lives > 0 then lives <= lives - 1; end if;
                         
-                        elsif any_new_press = '1' then --Si se ha pulsado algo
-                                                        
-                            if (color_hit and nota_en_hitzone) /= "00000" then  --Si alguna de las teclas que se pulsa coincide con una nota en la hitzone
-                                notas_a_destruir <= (color_hit and nota_en_hitzone);
+                        elsif (color_hit and nota_en_hitzone) /= "00000" then  --Si alguna de las teclas que se pulsa coincide con una nota en la hitzone
                                 nota_acierto <= '1';
                                 -- Cálculo de Puntos
-                                if (nota_en_hitzone = "00001" or nota_en_hitzone="00010" or nota_en_hitzone="00100" or nota_en_hitzone="01000" or nota_en_hitzone="10000") then
-                                    score <= score + (50 * multiplier); -- Nota normal
-                                else
-                                    score <= score + (100 * multiplier); -- Acorde
-                                end if;
-                                
+                                score <= score + (50 * multiplier); -- Nota normal
                                 if combo_cnt < 10 then -- Gestión del Combo
                                     combo_cnt <= combo_cnt + 1;
                                 else
                                     multiplier <= 2; -- Activar x2
                                 end if;
-
-                            else -- SI no son exactamente iguales no se destruye nada
-                                notas_a_destruir <= "00000"; --no se pone fallo aquíi ya que vendrá de nota pasa hitzone al no ser destruida
-                    
-                            end if;
                         end if;
                         
 
@@ -185,7 +174,7 @@ begin
         end if;
     end process;
 
-    puntuacion <= std_logic_vector(to_unsigned(score, 32)); --cast de integer a vector
+    puntuacion <= std_logic_vector(score); --cast de integer a vector
     vida <= lives;
 
     with state select
