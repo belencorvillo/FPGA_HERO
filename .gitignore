@@ -93,3 +93,7 @@
 *FPGA_HERO.cache/wt 
 *FPGA_HERO.hw/hw_1
 *FPGA_HERO.srcs/utils_1/imports/synth_1
+*FPGA_HERO.cache/
+*FPGA_HERO.gen/
+*FPGA_HERO.ip_user_files/
+*FPGA_HERO.sim/
