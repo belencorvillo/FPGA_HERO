@@ -44,7 +44,7 @@ entity TOP is
         AUD_SD       : out STD_LOGIC; -- Shutdown (dejar a '1')
         SW           : in STD_LOGIC;
 
-        -- 5. PERIFÉRICOS DE PLACA 
+        -- PERIFÉRICOS DE PLACA 
         -- Display 7-Segmentos para puntuación
         CA, CB, CC, CD, CE, CF, CG : out STD_LOGIC;
         DP : out STD_LOGIC;
@@ -68,8 +68,6 @@ architecture Behavioral of TOP is
     
     signal rst_sys : std_logic;
     -- Teclado y Decoder
-    signal sig_new_code : std_logic;
-    signal sig_keycode  : std_logic_vector(7 downto 0);
     signal user_keys    : std_logic_vector(4 downto 0); -- G,F,D,S,A
     signal cmd_esc, cmd_1, cmd_2 : std_logic;
 
@@ -95,24 +93,28 @@ architecture Behavioral of TOP is
     signal seg_vector   : std_logic_vector(6 downto 0);
 begin
     rst_sys <= NOT CPU_RESETN;
-    LED1 <= user_keys;      -- Se enciende si pulsas las teclas de color
-    LED_esc <= cmd_esc;
     LED_pulso <= vid_miss;
     -------------------------------------------------------------------------
-    -- 1. BLOQUE DE ENTRADA (TUS MÓDULOS)
+    -- 1. BLOQUE DE ENTRADA
     -------------------------------------------------------------------------
-    KEYBOARD: entity work.ps2_keyboard
-    generic map (clk_freq => 100_000_000)
+    INPUT_SYS: entity work.top_teclado
     port map (
-        CLK => CLK, ps2_clk => PS2_CLK, ps2_data => PS2_DATA,
-        ps2_code_new => sig_new_code, ps2_code => sig_keycode);
-
-    DECODER: entity work.guitar_decoder
-    port map (
-        clk => CLK, reset => rst_sys,
-        ps2_code_new => sig_new_code, ps2_code => sig_keycode, 
-        color_pulse => user_keys, 
-       esc_pulse => cmd_esc, btn1_pulse => cmd_1, btn2_pulse => cmd_2
+        CLK          => CLK,
+        RESET        => rst_sys,
+        
+        -- Puertos físicos
+        PS2_CLK      => PS2_CLK,
+        PS2_DATA     => PS2_DATA,
+        
+        -- Salidas lógicas hacia la FSM
+        user_keys    => user_keys,
+        cmd_esc      => cmd_esc,
+        cmd_1        => cmd_1,
+        cmd_2        => cmd_2,
+        
+        -- Salidas visuales de debug
+        leds_teclas  => LED1,     -- Conectado a los LEDs de la placa
+        led_esc      => LED_esc   -- Conectado al LED de ESC
     );
 
     -------------------------------------------------------------------------
